@@ -1,15 +1,15 @@
-import express from "express";
+import express from 'express';
+import {
+  getStaff, getStaffById, createStaff, updateStaff, deleteStaff, changeStaffPassword,
+} from '../controllers/staff.controller.js';
+import upload from '../middleware/upload.middleware.js';
+
 const router = express.Router();
-
-import staffController from "../controllers/staff.controller.js";
-// import { authenticateToken } from "../middleware/auth.js";
-
-router.get("/", staffController.getAllStaff);
-router.get("/:id", staffController.getStaffById);
-router.post("/", staffController.createStaff);
-router.put("/:id", staffController.updateStaff);
-router.delete("/:id", staffController.deleteStaff);
+router.get('/', getStaff);
+router.get('/:id', getStaffById);
+router.post('/', upload.single('profilePhoto'), createStaff);
+router.put('/:id', upload.single('profilePhoto'), updateStaff);
+router.delete('/:id', deleteStaff);
+router.put('/:id/change-password', changeStaffPassword);
 
 export default router;
-
-// authenticateToken,

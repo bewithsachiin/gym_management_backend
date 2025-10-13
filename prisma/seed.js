@@ -9,34 +9,30 @@ async function main() {
 
   // Create roles
   const superAdminRole = await prisma.role.upsert({
-    where: { name: 'SuperAdmin' },
+    where: { role_name: 'SuperAdmin' },
     update: {},
-    create: { name: 'SuperAdmin' },
+    create: { role_name: 'SuperAdmin' },
   });
 
   const adminRole = await prisma.role.upsert({
-    where: { name: 'Admin' },
+    where: { role_name: 'Admin' },
     update: {},
-    create: { name: 'Admin' },
+    create: { role_name: 'Admin' },
   });
 
   const managerRole = await prisma.role.upsert({
-    where: { name: 'Manager' },
+    where: { role_name: 'Manager' },
     update: {},
-    create: { name: 'Manager' },
+    create: { role_name: 'Manager' },
   });
 
-  // Create permissions
-  // Since 'name' is not unique, and 'action' and 'resource' are not unique together,
-  // we will use findFirst and create if not found instead of upsert
-  let manageUsersPerm = await prisma.permission.findFirst({
-    where: { action: 'manage', resource: 'users' },
+  const trainerRole = await prisma.role.upsert({
+    where: { role_name: 'GeneralTrainer' },
+    update: {},
+    create: { role_name: 'GeneralTrainer' },
   });
-  if (!manageUsersPerm) {
-    manageUsersPerm = await prisma.permission.create({
-      data: { action: 'manage', resource: 'users', roleId: superAdminRole.id },
-    });
-  }
+
+  // Permissions not implemented in schema, skipping
 
   // Create branches
   // 'name' is not unique, use 'code' or 'id' for unique where clause
@@ -48,16 +44,24 @@ async function main() {
     create: { code: 'MAIN', name: 'Main Branch', address: 'Downtown' },
   });
 
-  // Create users
-  // 'email' and 'branchId' fields do not exist in User model, remove them
-  const hashedUserPassword = await bcrypt.hash('admin123', 10);
-  const user = await prisma.user.upsert({
+  // Create admin staff
+  const hashedAdminPassword = await bcrypt.hash('admin123', 10);
+  const adminStaff = await prisma.staff.upsert({
     where: { username: 'admin' },
     update: {},
     create: {
+      staff_id: 'ADM001',
+      first_name: 'Admin',
+      last_name: 'User',
+      gender: 'MALE',
+      dob: new Date('1990-01-01'),
+      email: 'admin@gym.com',
+      phone: '1111111111',
       username: 'admin',
-      password: hashedUserPassword,
-      roleId: superAdminRole.id,
+      password: hashedAdminPassword,
+      role_id: superAdminRole.id,
+      branch_id: branch1.id,
+      login_enabled: true,
     },
   });
 
@@ -72,7 +76,7 @@ async function main() {
         name: 'Basic Plan',
         description: 'Basic membership',
         price: 50.0,
-        durationDays: 30,
+        duration_days: 30,
       },
     });
   }
@@ -83,30 +87,30 @@ async function main() {
     where: { username: 'member' },
     update: {},
     create: {
-      memberCode: 'MEM001',
-      firstName: 'John',
-      lastName: 'Doe',
+      member_code: 'MEM001',
+      first_name: 'John',
+      last_name: 'Doe',
       gender: 'MALE',
       email: 'member@gym.com',
       phone: '1234567890',
       username: 'member',
       password: hashedMemberPassword,
-      branchId: branch1.id,
+      branch_id: branch1.id,
     },
   });
 
   // Create memberships
   // 'id' is autoincrement, use findFirst and create if not found
   let membership = await prisma.membership.findFirst({
-    where: { memberId: member.id, planId: plan1.id },
+    where: { member_id: member.id, plan_id: plan1.id },
   });
   if (!membership) {
     membership = await prisma.membership.create({
       data: {
-        memberId: member.id,
-        planId: plan1.id,
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        member_id: member.id,
+        plan_id: plan1.id,
+        start_date: new Date(),
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
         status: 'ACTIVE',
       },
     });
@@ -116,23 +120,24 @@ async function main() {
   const hashedStaffPassword = await bcrypt.hash('staff123', 10);
   const staff = await prisma.staff.upsert({
     where: { username: 'staff' },
-    update: {},
+    update: { role_id: trainerRole.id },
     create: {
-      staffCode: 'STF001',
-      firstName: 'Jane',
-      lastName: 'Smith',
+      staff_id: 'STF001',
+      first_name: 'Jane',
+      last_name: 'Smith',
       gender: 'FEMALE',
       dob: new Date('1990-01-01'),
       email: 'staff@gym.com',
       phone: '0987654321',
+      role_id: trainerRole.id,
       role: 'Trainer',
-      joinDate: new Date(),
-      salaryType: 'FIXED',
-      fixedSalary: 3000.0,
+      join_date: new Date(),
+      salary_type: 'FIXED',
+      fixed_salary: 3000.0,
       username: 'staff',
       password: hashedStaffPassword,
-      branchId: branch1.id,
-      loginAccess: true,
+      branch_id: branch1.id,
+      login_enabled: true,
     },
   });
 

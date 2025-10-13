@@ -1,13 +1,12 @@
-import express from "express";
+import express from 'express';
+import {
+  getClasses, createClass, updateClass, deleteClass
+} from '../controllers/class.controller.js';
+
 const router = express.Router();
-
-import classController from "../controllers/class.controller.js";
-import { authenticateToken } from "../middleware/auth.js";
-
-router.get("/", authenticateToken, classController.getAllClasses);
-router.get("/:id", authenticateToken, classController.getClassById);
-router.post("/", authenticateToken, classController.createClass);
-router.put("/:id", authenticateToken, classController.updateClass);
-router.delete("/:id", authenticateToken, classController.deleteClass);
+router.get('/', getClasses);
+router.post('/', createClass);
+router.put('/:id', updateClass);
+router.delete('/:id', deleteClass);
 
 export default router;

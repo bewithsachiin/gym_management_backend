@@ -1,114 +1,119 @@
-import prisma from "../prisma/client.js";
+import { prisma } from '../config/db.config.js';
 
-// Get all attendances
-export const getAllAttendances = async (req, res) => {
+export const getMemberAttendance = async (req, res, next) => {
   try {
-    const attendances = await prisma.attendance.findMany({
-      include: {
-        member: true,
-      },
-    });
-    res.status(200).json(attendances);
-  } catch (error) {
-    console.error("Error fetching attendances:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
+    const records = await prisma.memberAttendance.findMany({ include: { member: true } });
+    res.json(records);
+  } catch (err) { next(err); }
 };
 
-// Get attendance by ID
-export const getAttendanceById = async (req, res) => {
+export const recordMemberCheckin = async (req, res, next) => {
+  try {
+    const { memberId, checkInTime } = req.body;
+    const record = await prisma.memberAttendance.create({
+      data: { memberId: Number(memberId), checkInTime: new Date(checkInTime || Date.now()) },
+    });
+    res.json(record);
+  } catch (err) { next(err); }
+};
+
+export const recordMemberCheckout = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const attendance = await prisma.attendance.findUnique({
+    const { checkOutTime } = req.body;
+    const updated = await prisma.memberAttendance.update({
       where: { id: Number(id) },
-      include: {
-        member: true,
-      },
+      data: { checkOutTime: new Date(checkOutTime || Date.now()) },
     });
-
-    if (!attendance) {
-      return res.status(404).json({ error: "Attendance not found" });
-    }
-
-    res.status(200).json(attendance);
-  } catch (error) {
-    console.error("Error fetching attendance:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
+    res.json(updated);
+  } catch (err) { next(err); }
 };
 
-// Create new attendance
-export const createAttendance = async (req, res) => {
+// Staff attendance
+export const getStaffAttendance = async (req, res, next) => {
   try {
-    const { memberId, checkIn, checkOut } = req.body;
+    const records = await prisma.staffAttendance.findMany({ include: { staff: true } });
+    res.json(records);
+  } catch (err) { next(err); }
+};
 
-    if (!memberId || !checkIn) {
-      return res.status(400).json({ error: "memberId and checkIn are required" });
+export const recordStaffCheckin = async (req, res, next) => {
+  try {
+    const { staffId, checkInTime } = req.body;
+    const record = await prisma.staffAttendance.create({
+      data: { staffId: Number(staffId), checkInTime: new Date(checkInTime || Date.now()) },
+    });
+    res.json(record);
+  } catch (err) { next(err); }
+};
+
+export const recordStaffCheckout = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { checkOutTime } = req.body;
+    const updated = await prisma.staffAttendance.update({
+      where: { id: Number(id) },
+      data: { checkOutTime: new Date(checkOutTime || Date.now()) },
+    });
+    res.json(updated);
+  } catch (err) { next(err); }
+};
+
+export const getMemberAttendanceById = async (req, res, next) => {
+    try{
+        const { id } = req.params;
+        const record = await prisma.memberAttendance.findUnique({ where: { id: Number(id) }, include: { member: true } });
+        if(!record) return res.status(404).json({ message: 'Attendance record not found' });
+        res.json(record);
+    }catch(err){
+        next(err);
     }
+}
 
-    const newAttendance = await prisma.attendance.create({
+export const getStaffAttendanceById = async (req, res, next) => {
+  try{
+      const { id } = req.params;
+      const record = await prisma.staffAttendance.findUnique({ where: { id: Number(id) }, include: { staff: true } });
+      if(!record) return res.status(404).json({ message: 'Attendance record not found' });
+      res.json(record);
+  }catch(err){
+    next(err);
+  }
+}
+
+export const generateQR = async (req, res, next) => {
+  try {
+    const { memberId } = req.body;
+    const member = await prisma.member.findUnique({ where: { id: Number(memberId) } });
+    if (!member) return res.status(404).json({ message: 'Member not found' });
+    const nonce = Math.random().toString(36).substring(2, 15);
+    const issuedAt = new Date();
+    const expiresAt = new Date(issuedAt.getTime() + 60 * 1000); // 60 seconds
+    const qrData = {
+      purpose: 'gym_checkin',
+      memberId: member.id,
+      memberName: member.name,
+      issuedAt: issuedAt.toISOString(),
+      nonce,
+      expiresAt: expiresAt.toISOString()
+    };
+    res.json(qrData);
+  } catch (err) { next(err); }
+};
+
+export const checkinWithQR = async (req, res, next) => {
+  try {
+    const { qrData } = req.body;
+    const { memberId, nonce, expiresAt } = qrData;
+    if (new Date() > new Date(expiresAt)) return res.status(400).json({ message: 'QR code expired' });
+    // Check if nonce is used, but for simplicity, assume not
+    const attendance = await prisma.memberAttendance.create({
       data: {
         memberId: Number(memberId),
-        checkIn: new Date(checkIn),
-        checkOut: checkOut ? new Date(checkOut) : undefined,
+        checkInTime: new Date(),
       },
+      include: { member: true }
     });
-
-    res.status(201).json(newAttendance);
-  } catch (error) {
-    console.error("Error creating attendance:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// Update attendance
-export const updateAttendance = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { memberId, checkIn, checkOut } = req.body;
-
-    const updatedAttendance = await prisma.attendance.update({
-      where: { id: Number(id) },
-      data: {
-        memberId: memberId ? Number(memberId) : undefined,
-        checkIn: checkIn ? new Date(checkIn) : undefined,
-        checkOut: checkOut ? new Date(checkOut) : undefined,
-      },
-    });
-
-    res.status(200).json(updatedAttendance);
-  } catch (error) {
-    console.error("Error updating attendance:", error);
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Attendance not found" });
-    }
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// Delete attendance
-export const deleteAttendance = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    await prisma.attendance.delete({
-      where: { id: Number(id) },
-    });
-
-    res.status(204).send();
-  } catch (error) {
-    console.error("Error deleting attendance:", error);
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Attendance not found" });
-    }
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-export default {
-  getAllAttendances,
-  getAttendanceById,
-  createAttendance,
-  updateAttendance,
-  deleteAttendance,
+    res.json(attendance);
+  } catch (err) { next(err); }
 };

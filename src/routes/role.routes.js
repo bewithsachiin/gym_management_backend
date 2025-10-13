@@ -1,13 +1,18 @@
-import express from "express";
+import express from 'express';
+import {
+  getRoles,
+  createRole,
+  updateRole,
+  deleteRole,
+  getRoleById,
+} from '../controllers/role.controller.js';
+
 const router = express.Router();
 
-import roleController from "../controllers/role.controller.js";
-// import { authenticateToken } from "../middleware/auth.js";
-
-router.get("/",  roleController.getAllRoles);
-router.get("/:id", roleController.getRoleById);
-router.post("/", roleController.createRole);
-router.put("/:id", roleController.updateRole);
-router.delete("/:id", roleController.deleteRole);
+router.get('/', getRoles);
+router.post('/', createRole);
+router.put('/:id', updateRole);
+router.delete('/:id', deleteRole);
+router.get('/:id', getRoleById);
 
 export default router;

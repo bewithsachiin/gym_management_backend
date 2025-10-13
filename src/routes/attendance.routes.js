@@ -1,13 +1,28 @@
-import express from "express";
+import express from 'express';
+import {
+  getMemberAttendance, recordMemberCheckin, recordMemberCheckout,
+  getStaffAttendance, recordStaffCheckin, recordStaffCheckout, getMemberAttendanceById, getStaffAttendanceById,
+  generateQR, checkinWithQR
+} from '../controllers/attendance.controller.js';
+
 const router = express.Router();
 
-import attendanceController from "../controllers/attendance.controller.js";
-import { authenticateToken } from "../middleware/auth.js";
+// Member Attendance
+router.get('/member', getMemberAttendance);
+router.post('/member/checkin', recordMemberCheckin);
+router.put('/member/:id/checkout', recordMemberCheckout);
 
-router.get("/", authenticateToken, attendanceController.getAllAttendances);
-router.get("/:id", authenticateToken, attendanceController.getAttendanceById);
-router.post("/", authenticateToken, attendanceController.createAttendance);
-router.put("/:id", authenticateToken, attendanceController.updateAttendance);
-router.delete("/:id", authenticateToken, attendanceController.deleteAttendance);
+// Staff Attendance
+router.get('/staff', getStaffAttendance);
+router.post('/staff/checkin', recordStaffCheckin);
+router.put('/staff/:id/checkout', recordStaffCheckout);
+
+// Get attendance by ID
+router.get('/member/:id', getMemberAttendanceById);
+router.get('/staff/:id', getStaffAttendanceById);
+
+// QR Check-in
+router.post('/generate-qr', generateQR);
+router.post('/checkin-qr', checkinWithQR);
 
 export default router;

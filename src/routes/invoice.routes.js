@@ -1,13 +1,11 @@
-import express from "express";
+import express from 'express';
+import { getInvoices, getInvoiceById, createInvoice, updateInvoice, deleteInvoice } from '../controllers/invoice.controller.js';
+
 const router = express.Router();
-
-import invoiceController from "../controllers/invoice.controller.js";
-import { authenticateToken } from "../middleware/auth.js";
-
-router.get("/", authenticateToken, invoiceController.getAllInvoices);
-router.get("/:id", authenticateToken, invoiceController.getInvoiceById);
-router.post("/", authenticateToken, invoiceController.createInvoice);
-router.put("/:id", authenticateToken, invoiceController.updateInvoice);
-router.delete("/:id", authenticateToken, invoiceController.deleteInvoice);
+router.get('/', getInvoices);
+router.get('/:id', getInvoiceById);
+router.post('/', createInvoice);
+router.put('/:id', updateInvoice);
+router.delete('/:id', deleteInvoice);
 
 export default router;

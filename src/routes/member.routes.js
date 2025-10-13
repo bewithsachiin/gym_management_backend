@@ -1,13 +1,17 @@
-import express from "express";
+import express from 'express';
+import {
+  getMembers, getMemberById, createMember, updateMember, deleteMember, changeMemberPassword
+} from '../controllers/member.controller.js';
+import upload from '../middleware/upload.middleware.js';
+import { verifyStaffToken } from '../middleware/auth.middleware.js';
+
 const router = express.Router();
-
-import memberController from "../controllers/member.controller.js";
-import { authenticateToken } from "../middleware/auth.js";
-
-router.get("/", authenticateToken, memberController.getAllMembers);
-router.get("/:id", authenticateToken, memberController.getMemberById);
-router.post("/", authenticateToken, memberController.createMember);
-router.put("/:id", authenticateToken, memberController.updateMember);
-router.delete("/:id", authenticateToken, memberController.deleteMember);
+router.use(verifyStaffToken); // Protect all member routes
+router.get('/', getMembers);
+router.get('/:id', getMemberById);
+router.post('/', upload.single('memberImage'), createMember);
+router.put('/:id', upload.single('memberImage'), updateMember);
+router.put('/:id/change-password', changeMemberPassword);
+router.delete('/:id', deleteMember);
 
 export default router;

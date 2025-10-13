@@ -1,171 +1,94 @@
-import prisma from "../prisma/client.js";
+import { prisma } from '../config/db.config.js';
 import bcrypt from 'bcryptjs';
 
-// Get all members
-export const getAllMembers = async (req, res) => {
+export const getMembers = async (req, res, next) => {
   try {
-    const members = await prisma.member.findMany({
-      include: {
-        branch: true,
-        memberships: { include: { plan: true } },
-        attendances: true,
-        payments: true,
-        invoices: true,
-      },
-    });
-    res.status(200).json(members);
-  } catch (error) {
-    console.error("Error fetching members:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
+    const members = await prisma.member.findMany({ include: { branch: true } });
+    res.json(members);
+  } catch (err) { next(err); }
 };
 
-// Get member by ID
-export const getMemberById = async (req, res) => {
+export const getMemberById = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const member = await prisma.member.findUnique({
-      where: { id: Number(id) },
-      include: {
-        branch: true,
-        memberships: { include: { plan: true } },
-        attendances: true,
-        payments: true,
-        invoices: true,
-      },
-    });
-
-    if (!member) {
-      return res.status(404).json({ error: "Member not found" });
-    }
-
-    res.status(200).json(member);
-  } catch (error) {
-    console.error("Error fetching member:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
+    const member = await prisma.member.findUnique({ where: { id: Number(req.params.id) } });
+    res.json(member);
+  } catch (err) { next(err); }
 };
 
-// Create new member
-export const createMember = async (req, res) => {
+export const createMember = async (req, res, next) => {
   try {
-    const { memberCode, firstName, middleName, lastName, gender, dob, email, phone, address, city, state, status, membershipStatus, weight, height, chest, waist, arms, fatPercent, username, password, branchId } = req.body;
-
-    if (!memberCode || !firstName || !lastName || !gender || !phone) {
-      return res.status(400).json({ error: "memberCode, firstName, lastName, gender, and phone are required" });
-    }
-
-    let hashedPassword;
-    if (password) {
-      hashedPassword = await bcrypt.hash(password, 10);
-    }
-
-    const newMember = await prisma.member.create({
+    const {
+      member_code, first_name, middle_name, last_name, email, username, password, phone, address, city, state,
+      date_of_birth, gender, status, membership_status, branch_id, group_id,
+      weight, height, chest, waist, thigh, arms, fat_percent, plan, mobile
+    } = req.body;
+    const member_image = req.file ? req.file.path : null;
+    const hashed = password ? await bcrypt.hash(password, 10) : null;
+    const member = await prisma.member.create({
       data: {
-        memberCode,
-        firstName,
-        middleName,
-        lastName,
-        gender,
-        dob: dob ? new Date(dob) : undefined,
-        email,
-        phone,
-        address,
-        city,
-        state,
-        status,
-        membershipStatus,
-        weight: weight ? parseFloat(weight) : undefined,
-        height: height ? parseFloat(height) : undefined,
-        chest: chest ? parseFloat(chest) : undefined,
-        waist: waist ? parseFloat(waist) : undefined,
-        arms: arms ? parseFloat(arms) : undefined,
-        fatPercent: fatPercent ? parseFloat(fatPercent) : undefined,
-        username,
-        password: hashedPassword,
-        branchId: branchId ? Number(branchId) : undefined,
+        member_code: member_code || `M${Math.floor(10000 + Math.random() * 90000)}`,
+        first_name, middle_name, last_name, email, username, password: hashed, phone: phone || mobile, address, city, state,
+        date_of_birth: date_of_birth ? new Date(date_of_birth) : null,
+        gender, status: status || 'ACTIVE', membership_status: membership_status || 'ACTIVATED', member_image,
+        branch_id: branch_id ? Number(branch_id) : null, group_id: group_id ? Number(group_id) : null,
+        weight: weight ? parseFloat(weight) : null, height: height ? parseFloat(height) : null,
+        chest: chest ? parseFloat(chest) : null, waist: waist ? parseFloat(waist) : null,
+        thigh: thigh ? parseFloat(thigh) : null, arms: arms ? parseFloat(arms) : null,
+        fat_percent: fat_percent ? parseFloat(fat_percent) : null,
+        plan
       },
+      include: { branch: true, group: true }
     });
-
-    res.status(201).json(newMember);
-  } catch (error) {
-    console.error("Error creating member:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
+    res.json(member);
+  } catch (err) { next(err); }
 };
 
-// Update member
-export const updateMember = async (req, res) => {
+export const updateMember = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { memberCode, firstName, middleName, lastName, gender, dob, email, phone, address, city, state, status, membershipStatus, weight, height, chest, waist, arms, fatPercent, username, password, branchId } = req.body;
-
-    let data = {
-      memberCode,
-      firstName,
-      middleName,
-      lastName,
-      gender,
-      dob: dob ? new Date(dob) : undefined,
-      email,
-      phone,
-      address,
-      city,
-      state,
-      status,
-      membershipStatus,
-      weight: weight ? parseFloat(weight) : undefined,
-      height: height ? parseFloat(height) : undefined,
-      chest: chest ? parseFloat(chest) : undefined,
-      waist: waist ? parseFloat(waist) : undefined,
-      arms: arms ? parseFloat(arms) : undefined,
-      fatPercent: fatPercent ? parseFloat(fatPercent) : undefined,
-      username,
-      branchId: branchId ? Number(branchId) : undefined,
-    };
-
-    if (password) {
-      data.password = await bcrypt.hash(password, 10);
-    }
-
-    const updatedMember = await prisma.member.update({
+    const {
+      member_code, first_name, middle_name, last_name, email, username, phone, address, city, state,
+      date_of_birth, gender, status, membership_status, branch_id, group_id,
+      weight, height, chest, waist, thigh, arms, fat_percent, plan
+    } = req.body;
+    const member_image = req.file ? req.file.path : undefined;
+    const updated = await prisma.member.update({
       where: { id: Number(id) },
-      data,
+      data: {
+        member_code, first_name, middle_name, last_name, email, username, phone, address, city, state,
+        date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
+        gender, status, membership_status, member_image,
+        branch_id: branch_id ? Number(branch_id) : undefined, group_id: group_id ? Number(group_id) : undefined,
+        weight: weight ? parseFloat(weight) : undefined, height: height ? parseFloat(height) : undefined,
+        chest: chest ? parseFloat(chest) : undefined, waist: waist ? parseFloat(waist) : undefined,
+        thigh: thigh ? parseFloat(thigh) : undefined, arms: arms ? parseFloat(arms) : undefined,
+        fat_percent: fat_percent ? parseFloat(fat_percent) : undefined,
+        plan
+      },
+      include: { branch: true, group: true }
     });
-
-    res.status(200).json(updatedMember);
-  } catch (error) {
-    console.error("Error updating member:", error);
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Member not found" });
-    }
-    res.status(500).json({ error: "Internal server error" });
-  }
+    res.json(updated);
+  } catch (err) { next(err); }
 };
 
-// Delete member
-export const deleteMember = async (req, res) => {
+export const deleteMember = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    await prisma.member.delete({
-      where: { id: Number(id) },
-    });
-
-    res.status(204).send();
-  } catch (error) {
-    console.error("Error deleting member:", error);
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Member not found" });
-    }
-    res.status(500).json({ error: "Internal server error" });
-  }
+    await prisma.member.delete({ where: { id: Number(req.params.id) } });
+    res.json({ success: true });
+  } catch (err) { next(err); }
 };
-
-export default {
-  getAllMembers,
-  getMemberById,
-  createMember,
-  updateMember,
-  deleteMember,
-};
+export const changeMemberPassword = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { newPassword } = req.body;
+        const hashed = await bcrypt.hash(newPassword, 15);
+        await prisma.member.update({
+            where: { id: Number(id) },
+            data: { password: hashed },
+        });
+        res.json({ success: true });
+    } 
+    catch (err) {
+         next(err); 
+}
+}

@@ -1,13 +1,18 @@
-import express from "express";
+import express from 'express';
+import {
+  getBranches,
+  createBranch,
+  updateBranch,
+  deleteBranch,
+  getBranchById,
+} from '../controllers/branch.controller.js';
+
 const router = express.Router();
 
-import branchController from "../controllers/branch.controller.js";
-import { authenticateToken } from "../middleware/auth.js";
-
-router.get("/", authenticateToken, branchController.getAllBranches);
-router.get("/:id", authenticateToken, branchController.getBranchById);
-router.post("/", authenticateToken, branchController.createBranch);
-router.put("/:id", authenticateToken, branchController.updateBranch);
-router.delete("/:id", authenticateToken, branchController.deleteBranch);
+router.get('/', getBranches);
+router.post('/', createBranch);
+router.put('/:id', updateBranch);
+router.delete('/:id', deleteBranch);
+router.get('/:id', getBranchById);
 
 export default router;

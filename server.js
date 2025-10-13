@@ -1,61 +1,63 @@
-import express from "express";
-import cors from "cors";
-import morgan from "morgan";
-import dotenv from "dotenv";
-import rateLimit from "express-rate-limit";
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import { PrismaClient } from '@prisma/client';
 
-import userRoutes from "./src/routes/user.routes.js";
-// import authRoutes from "./src/routes/auth.routes.js";
-import branchRoutes from "./src/routes/branch.routes.js";
-import memberRoutes from "./src/routes/member.routes.js";
-import membershipPlanRoutes from "./src/routes/membershipPlan.routes.js";
-import membershipRoutes from "./src/routes/membership.routes.js";
-import staffRoutes from "./src/routes/staff.routes.js";
-import invoiceRoutes from "./src/routes/invoice.routes.js";
-import paymentRoutes from "./src/routes/payment.routes.js";
-import classRoutes from "./src/routes/class.routes.js";
-import roleRoutes from "./src/routes/role.routes.js";
-import permissionRoutes from "./src/routes/permission.routes.js";
-import attendanceRoutes from "./src/routes/attendance.routes.js";
+// Routes
+import authRoutes from './src/routes/auth.routes.js';
+import roleRoutes from './src/routes/role.routes.js'
+import branchRoutes from './src/routes/branch.routes.js';
+import groupRoutes from './src/routes/group.routes.js';
+import memberRoutes from './src/routes/member.routes.js';
+import staffRoutes from './src/routes/staff.routes.js';
+import attendanceRoutes from './src/routes/attendance.routes.js'
+import planRoutes from './src/routes/plan.routes.js';
+import bookingRoutes from './src/routes/booking.routes.js';
+import campaignRoutes from './src/routes/campaign.routes.js';
+import salaryRoutes from './src/routes/salary.routes.js';
+import dutyRosterRoutes from './src/routes/dutyroster.routes.js';
+import classRoutes from './src/routes/class.routes.js';
+import feedbackRoutes from './src/routes/feedback.routes.js';
+import invoiceRoutes from './src/routes/invoice.routes.js';
+import dashboardRoutes from './src/routes/dashboard.routes.js';
+import reportRoutes from './src/routes/report.routes.js';
+
+// Middleware
+import { errorHandler } from './src/middleware/error.middleware.js';
+
 
 dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 6000;
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-});
+const prisma = new PrismaClient();
 
 app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'],
+  credentials: true
 }));
-app.use(morgan("combined"));
-app.use(limiter);
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// app.use("/auth", authRoutes);
-app.use("api/users", userRoutes);
-app.use("/branches", branchRoutes);
-app.use("/members", memberRoutes);
-app.use("/membership-plans", membershipPlanRoutes);
-app.use("/memberships", membershipRoutes);
-app.use("/staff", staffRoutes);
-app.use("/invoices", invoiceRoutes);
-app.use("/payments", paymentRoutes);
-app.use("/classes", classRoutes);
-app.use("/roles", roleRoutes);
-app.use("/permissions", permissionRoutes);
-app.use("/attendance", attendanceRoutes);
+// Register all routes
+app.use('/api/auth', authRoutes);
+app.use('/api/roles', roleRoutes);
+app.use('/api/branches', branchRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/members', memberRoutes);
+app.use('/api/staff', staffRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/plans', planRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/campaigns', campaignRoutes);
+app.use('/api/salaries', salaryRoutes);
+app.use('/api/dutyroster', dutyRosterRoutes);
+app.use('/api/classes', classRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/reports', reportRoutes);
 
-app.get("/", (req, res) => {
-  res.send("API is running...");
-});
+// Error middleware
+app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`✅ Gym backend running on port ${PORT}`));

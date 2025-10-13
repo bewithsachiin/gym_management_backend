@@ -1,114 +1,57 @@
-import prisma from "../prisma/client.js";
+import { prisma } from '../config/db.config.js';
 
-// Get all roles
-export const getAllRoles = async (req, res) => {
+export const getRoles = async (req, res, next) => {
   try {
-    const roles = await prisma.role.findMany({
-      include: {
-        users: true,
-        permissions: true,
-      },
-    });
-    res.status(200).json(roles);
-  } catch (error) {
-    console.error("Error fetching roles:", error);
-    res.status(500).json({ error: "Internal server error" });
+    const roles = await prisma.role.findMany();
+    res.json(roles);
+  } catch (err) {
+    next(err);
   }
 };
 
-// Get role by ID
-export const getRoleById = async (req, res) => {
+export const createRole = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const role = await prisma.role.findUnique({
-      where: { id: Number(id) },
-      include: {
-        users: true,
-        permissions: true,
-      },
-    });
-
-    if (!role) {
-      return res.status(404).json({ error: "Role not found" });
-    }
-
-    res.status(200).json(role);
-  } catch (error) {
-    console.error("Error fetching role:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// Create new role
-export const createRole = async (req, res) => {
-  try {
-    const { name, description } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ error: "name is required" });
-    }
-
+    const { name, description, permissionsJson, status } = req.body;
     const newRole = await prisma.role.create({
-      data: {
-        name,
-        description,
-      },
+      data: { name, description, permissionsJson, status: status || 'ACTIVE' },
     });
-
-    res.status(201).json(newRole);
-  } catch (error) {
-    console.error("Error creating role:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.json(newRole);
+  } catch (err) {
+    next(err);
   }
 };
 
-// Update role
-export const updateRole = async (req, res) => {
+export const updateRole = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
-
-    const updatedRole = await prisma.role.update({
+    const { name, description, permissionsJson } = req.body;
+    const updated = await prisma.role.update({
       where: { id: Number(id) },
-      data: {
-        name,
-        description,
-      },
+      data: { name, description, permissionsJson },
     });
-
-    res.status(200).json(updatedRole);
-  } catch (error) {
-    console.error("Error updating role:", error);
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Role not found" });
-    }
-    res.status(500).json({ error: "Internal server error" });
+    res.json(updated);
+  } catch (err) {
+    next(err);
   }
 };
 
-// Delete role
-export const deleteRole = async (req, res) => {
+export const deleteRole = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    await prisma.role.delete({
-      where: { id: Number(id) },
-    });
-
-    res.status(204).send();
-  } catch (error) {
-    console.error("Error deleting role:", error);
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Role not found" });
-    }
-    res.status(500).json({ error: "Internal server error" });
+    await prisma.role.delete({ where: { id: Number(id) } });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
   }
 };
 
-export default {
-  getAllRoles,
-  getRoleById,
-  createRole,
-  updateRole,
-  deleteRole,
-};
+export const getRoleById = async (req, res, next) => {
+    try{
+        const { id } = req.params;
+        const role = await prisma.role.findUnique({ where: { id: Number(id) } });
+        if(!role) return res.status(404).json({ message: 'Role not found' });
+        res.json(role);
+    }catch(err){
+        next(err);
+    } 
+}

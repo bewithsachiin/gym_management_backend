@@ -1,110 +1,57 @@
-import prisma from "../prisma/client.js";
+import { prisma } from '../config/db.config.js';
 
-// Get all branches
-export const getAllBranches = async (req, res) => {
+export const getBranches = async (req, res, next) => {
   try {
-    const branches = await prisma.branch.findMany({
-      include: {
-        members: true,
-        staff: true,
-        classes: true,
-      },
-    });
-    res.status(200).json(branches);
-  } catch (error) {
-    console.error("Error fetching branches:", error);
-    res.status(500).json({ error: "Internal server error" });
+    const branches = await prisma.branch.findMany();
+    res.json(branches);
+  } catch (err) {
+    next(err);
   }
 };
 
-// Get branch by ID
-export const getBranchById = async (req, res) => {
+export const createBranch = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const branch = await prisma.branch.findUnique({
-      where: { id: Number(id) },
-      include: {
-        members: true,
-        staff: true,
-        classes: true,
-      },
-    });
-
-    if (!branch) {
-      return res.status(404).json({ error: "Branch not found" });
-    }
-
-    res.status(200).json(branch);
-  } catch (error) {
-    console.error("Error fetching branch:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// Create new branch
-export const createBranch = async (req, res) => {
-  try {
-    const { name, code, address, status } = req.body;
-
-    if (!name || !code) {
-      return res.status(400).json({ error: "name and code are required" });
-    }
-
+    const { name, address, phone } = req.body;
     const newBranch = await prisma.branch.create({
-      data: { name, code, address, status },
+      data: { name, address, phone, },
     });
-
-    res.status(201).json(newBranch);
-  } catch (error) {
-    console.error("Error creating branch:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.json(newBranch);
+  } catch (err) {
+    next(err);
   }
 };
 
-// Update branch
-export const updateBranch = async (req, res) => {
+export const updateBranch = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, code, address, status } = req.body;
-
-    const updatedBranch = await prisma.branch.update({
+    const { name, address, phone } = req.body;
+    const updated = await prisma.branch.update({
       where: { id: Number(id) },
-      data: { name, code, address, status },
+      data: { name, address, phone },
     });
-
-    res.status(200).json(updatedBranch);
-  } catch (error) {
-    console.error("Error updating branch:", error);
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Branch not found" });
-    }
-    res.status(500).json({ error: "Internal server error" });
+    res.json(updated);
+  } catch (err) {
+    next(err);
   }
 };
 
-// Delete branch
-export const deleteBranch = async (req, res) => {
+export const deleteBranch = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    await prisma.branch.delete({
-      where: { id: Number(id) },
-    });
-
-    res.status(204).send();
-  } catch (error) {
-    console.error("Error deleting branch:", error);
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Branch not found" });
-    }
-    res.status(500).json({ error: "Internal server error" });
+    await prisma.branch.delete({ where: { id: Number(id) } });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
   }
 };
-
-export default {
-  getAllBranches,
-  getBranchById,
-  createBranch,
-  updateBranch,
-  deleteBranch,
-};
+export const getBranchById = async (req, res, next) => {
+    try{
+        const { id } = req.params;
+        const branch = await prisma.branch.findUnique({ where: { id: Number(id) } });
+        if(!branch) return res.status(404).json({ message: 'Branch not found' });
+        res.json(branch);
+    }catch(err){
+    next(err);
+    }
+}
+    

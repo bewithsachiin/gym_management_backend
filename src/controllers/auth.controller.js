@@ -1,115 +1,93 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import prisma from '../prisma/client.js';
-import dotenv from 'dotenv';
+import { prisma } from '../config/db.config.js';
 
-dotenv.config();
+const generateToken = (payload) => {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+};
 
-export const loginUser = async (req, res) => {
+// ========== STAFF AUTH ==========
+export const registerStaff = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
+    const { name, username, email, password, roleId, branchId } = req.body;
+    const existing = await prisma.staff.findUnique({ where: { username } });
+    if (existing) return res.status(400).json({ message: 'Username already registered' });
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { username },
-      include: { role: true },
+    const hashed = await bcrypt.hash(password, 10);
+    const staff = await prisma.staff.create({
+      data: { name, username, email, password: hashed, roleId: Number(roleId), branchId: Number(branchId) || null },
+      include: { staffRole: true, branch: true }
     });
 
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role.name },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.status(200).json({ token, user: { id: user.id, username: user.username, role: user.role.name } });
-  } catch (error) {
-    console.error('Error logging in user:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.json({ success: true, staff });
+  } catch (err) {
+    next(err);
   }
 };
 
-export const loginMember = async (req, res) => {
+export const loginStaff = async (req, res, next) => {
   try {
     const { username, password } = req.body;
+    const staff = await prisma.staff.findUnique({ where: { username }, include: { staffRole: true } });
+    if (!staff) return res.status(404).json({ message: 'Staff not found' });
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
-    }
+    const match = await bcrypt.compare(password, staff.password);
+    if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const member = await prisma.member.findUnique({
-      where: { username },
-    });
-
-    if (!member || !member.password) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, member.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { id: member.id, username: member.username, type: 'member' },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.status(200).json({ token, user: { id: member.id, username: member.username, type: 'member' } });
-  } catch (error) {
-    console.error('Error logging in member:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const token = generateToken({ id: staff.id, username: staff.username, role: staff.staffRole?.role_name || staff.role || 'Unknown', type: 'staff', branchId: staff.branchId });
+    res.json({ success: true, token, user: staff });
+  } catch (err) {
+    next(err);
   }
 };
 
-export const loginStaff = async (req, res) => {
+// ========== USER AUTH (Admin/SuperAdmin) ==========
+export const loginUser = async (req, res, next) => {
   try {
     const { username, password } = req.body;
+    const staff = await prisma.staff.findUnique({ where: { username }, include: { staffRole: true } });
+    if (!staff) return res.status(404).json({ message: 'User not found' });
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
-    }
+    const match = await bcrypt.compare(password, staff.password);
+    if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const staff = await prisma.staff.findUnique({
-      where: { username },
-    });
-
-    if (!staff || !staff.password || !staff.loginAccess) {
-      return res.status(401).json({ error: 'Invalid credentials or no login access' });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, staff.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { id: staff.id, username: staff.username, role: staff.role, type: 'staff' },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.status(200).json({ token, user: { id: staff.id, username: staff.username, role: staff.role, type: 'staff' } });
-  } catch (error) {
-    console.error('Error logging in staff:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const token = generateToken({ id: staff.id, username: staff.username, role: staff.staffRole?.role_name || staff.role || 'Unknown', type: 'user', branchId: staff.branchId });
+    res.json({ success: true, token, user: staff });
+  } catch (err) {
+    next(err);
   }
 };
 
-export default {
-  loginUser,
-  loginMember,
-  loginStaff,
+// ========== MEMBER AUTH ==========
+export const registerMember = async (req, res, next) => {
+  try {
+    const { name, email, password } = req.body;
+    const existing = await prisma.member.findUnique({ where: { email } });
+    if (existing) return res.status(400).json({ message: 'Email already registered' });
+
+    const hashed = await bcrypt.hash(password, 10);
+    const member = await prisma.member.create({
+      data: { name, email, password: hashed },
+    });
+
+    res.json({ success: true, member });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const loginMember = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    const member = await prisma.member.findUnique({ where: { email } });
+    if (!member) return res.status(404).json({ message: 'Member not found' });
+
+    const match = await bcrypt.compare(password, member.password);
+    if (!match) return res.status(401).json({ message: 'Invalid credentials' });
+
+    const token = generateToken({ id: member.id, username: member.username, role: 'member', type: 'member' });
+    res.json({ success: true, token, user: member });
+  } catch (err) {
+    next(err);
+  }
 };
