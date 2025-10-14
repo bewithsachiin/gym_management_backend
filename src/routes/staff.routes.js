@@ -1,15 +1,21 @@
-import express from 'express';
+import express from "express";
 import {
-  getStaff, getStaffById, createStaff, updateStaff, deleteStaff, changeStaffPassword,
-} from '../controllers/staff.controller.js';
-import upload from '../middleware/upload.middleware.js';
+  getAllStaff,
+  getStaffById,
+  createStaff,
+  updateStaff,
+  deleteStaff,
+} from "../controllers/staff.controller.js";
+
+import upload from "../middleware/upload.middleware.js"; // multer + Cloudinary
 
 const router = express.Router();
-router.get('/', getStaff);
-router.get('/:id', getStaffById);
-router.post('/', upload.single('profilePhoto'), createStaff);
-router.put('/:id', upload.single('profilePhoto'), updateStaff);
-router.delete('/:id', deleteStaff);
-router.put('/:id/change-password', changeStaffPassword);
+
+// CRUD routes
+router.get("/", getAllStaff);
+router.get("/:id", getStaffById);
+router.post("/", upload.single("profile_photo"), createStaff); // POST with optional image
+router.put("/:id", upload.single("profile_photo"), updateStaff); // PUT with optional image
+router.delete("/:id", deleteStaff);
 
 export default router;

@@ -1,53 +1,96 @@
-import { prisma } from '../config/db.config.js';
+import { prisma } from "../config/db.config.js";
 
-export const getSalaries = async (req, res, next) => {
+// ✅ Get all salary records
+export const getAllSalaryRecords = async (req, res, next) => {
   try {
-    const salaries = await prisma.salary.findMany({ include: { staff: true } });
-    res.json(salaries);
-  } catch (err) { next(err); }
+    const records = await prisma.salaryRecord.findMany({
+      include: { staff: true },
+      orderBy: { created_at: "desc" },
+    });
+    res.json({ success: true, data: records });
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const recordSalary = async (req, res, next) => {
+// ✅ Get a single salary record by ID
+export const getSalaryRecordById = async (req, res, next) => {
+  const { id } = req.params;
   try {
-    const { staffId, amount, month, paidAt, status } = req.body;
-    const salary = await prisma.salary.create({
+    const record = await prisma.salaryRecord.findUnique({
+      where: { id: parseInt(id) },
+      include: { staff: true },
+    });
+    if (!record) return res.status(404).json({ success: false, message: "Salary record not found" });
+    res.json({ success: true, data: record });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ✅ Create a new salary record
+export const createSalaryRecord = async (req, res, next) => {
+  const {
+    staff_id,
+    status,
+    commission_total,
+    fixed_salary,
+    hourly_rate,
+    hours_worked,
+    net_pay,
+    bonus_label,
+    bonus_amount,
+    deduction_label,
+    deduction_amount,
+    period_start,
+    period_end,
+  } = req.body;
+
+  try {
+    const newRecord = await prisma.salaryRecord.create({
       data: {
-        staffId: Number(staffId),
-        amount: Number(amount),
-        month,
-        paidAt: paidAt ? new Date(paidAt) : new Date(),
-        status: status || 'paid',
+        staff_id,
+        status,
+        commission_total,
+        fixed_salary,
+        hourly_rate,
+        hours_worked,
+        net_pay,
+        bonus_label,
+        bonus_amount,
+        deduction_label,
+        deduction_amount,
+        period_start: new Date(period_start),
+        period_end: new Date(period_end),
       },
     });
-    res.json(salary);
-  } catch (err) { next(err); }
+    res.status(201).json({ success: true, data: newRecord });
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const updateSalary = async (req, res, next) => {
+// ✅ Update a salary record
+export const updateSalaryRecord = async (req, res, next) => {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
-    const { amount, status } = req.body;
-    const updated = await prisma.salary.update({
-      where: { id: Number(id) },
-      data: { amount: Number(amount), status },
+    const updatedRecord = await prisma.salaryRecord.update({
+      where: { id: parseInt(id) },
+      data: req.body,
     });
-    res.json(updated);
-  } catch (err) { next(err); }
+    res.json({ success: true, data: updatedRecord });
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const deleteSalary = async (req, res, next) => {
+// ✅ Delete a salary record
+export const deleteSalaryRecord = async (req, res, next) => {
+  const { id } = req.params;
   try {
-    await prisma.salary.delete({ where: { id: Number(req.params.id) } });
-    res.json({ success: true });
-  } catch (err) { next(err); }
+    await prisma.salaryRecord.delete({ where: { id: parseInt(id) } });
+    res.json({ success: true, message: "Salary record deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
 };
-export const getSalaryById = async (req, res, next) => {
-    try{
-        const { id } = req.params;
-        const salary = await prisma.salary.findUnique({ where: { id: Number(id) }, include: { staff: true } });
-        if(!salary) return res.status(404).json({ message: 'Salary record not found' });
-        res.json(salary);
-    }catch(err){
-        next(err);
-    }
-}

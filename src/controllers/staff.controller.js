@@ -1,96 +1,193 @@
-import { prisma } from '../config/db.config.js';
-import bcrypt from 'bcryptjs';
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
-export const getStaff = async (req, res, next) => {
+// --------------------
+// GET all staff
+// --------------------
+export const getAllStaff = async (req, res) => {
   try {
-    const staff = await prisma.staff.findMany({ include: { role: true, branch: true } });
-    res.json(staff);
-  } catch (err) { next(err); }
+    const staff = await prisma.staff.findMany({
+      include: {
+        branch: true,
+        staffRole: true,
+        notifications: true,
+      },
+    });
+    res.status(200).json(staff);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch staff.", error });
+  }
 };
 
-export const getStaffById = async (req, res, next) => {
+// --------------------
+// GET staff by ID
+// --------------------
+export const getStaffById = async (req, res) => {
+  const { id } = req.params;
   try {
-    const staff = await prisma.staff.findUnique({ where: { id: Number(req.params.id) } });
-    res.json(staff);
-  } catch (err) { next(err); }
+    const staff = await prisma.staff.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        branch: true,
+        staffRole: true,
+        notifications: true,
+      },
+    });
+    if (!staff) return res.status(404).json({ message: "Staff not found." });
+    res.status(200).json(staff);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch staff.", error });
+  }
 };
 
-export const createStaff = async (req, res, next) => {
+// --------------------
+// CREATE staff
+// --------------------
+export const createStaff = async (req, res) => {
   try {
     const {
-      staff_id, first_name, last_name, name, gender, dob, email, phone,
-      role_label, status, join_date, exit_date, salary_type, fixed_salary, hourly_rate, commission_rate_percent,
-      login_enabled, username, password, branch_id, role_id
+      staff_id,
+      first_name,
+      last_name,
+      name,
+      gender,
+      dob,
+      email,
+      phone,
+      role,
+      status,
+      join_date,
+      exit_date,
+      salary_type,
+      fixed_salary,
+      hourly_rate,
+      commission_rate_percent,
+      login_enabled,
+      username,
+      password,
+      branch_id,
+      role_id,
     } = req.body;
-    const profile_photo = req.file ? req.file.path : null;
-    const hashed = password ? await bcrypt.hash(password, 10) : null;
-    const fullName = name || `${first_name} ${last_name}`;
-    const staff = await prisma.staff.create({
-      data: {
-        staff_id: staff_id || `S${Math.floor(10000 + Math.random() * 90000)}`,
-        first_name, last_name, name: fullName, gender, dob: dob ? new Date(dob) : null,
-        email, phone, profile_photo, role_label, status: status || 'ACTIVE',
-        join_date: join_date ? new Date(join_date) : new Date(),
-        exit_date: exit_date ? new Date(exit_date) : null,
-        salary_type, fixed_salary: fixed_salary ? parseFloat(fixed_salary) : null,
-        hourly_rate: hourly_rate ? parseFloat(hourly_rate) : null,
-        commission_rate_percent: commission_rate_percent ? parseFloat(commission_rate_percent) : null,
-        login_enabled: login_enabled || false, username, password: hashed,
-        branch_id: branch_id ? Number(branch_id) : null, role_id: role_id ? Number(role_id) : null
-      },
-      include: { role: true, branch: true }
-    });
-    res.json(staff);
-  } catch (err) { next(err); }
+
+    const data = {
+      staff_id,
+      first_name,
+      last_name,
+      name,
+      gender,
+      dob: dob ? new Date(dob) : undefined,
+      email,
+      phone,
+      role,
+      status,
+      join_date: join_date ? new Date(join_date) : undefined,
+      exit_date: exit_date ? new Date(exit_date) : undefined,
+      salary_type,
+      fixed_salary,
+      hourly_rate,
+      commission_rate_percent,
+      username,
+      password,
+      branch_id,
+      role_id,
+      profile_photo: req.file ? req.file.path : undefined,
+      login_enabled:
+        login_enabled === true || login_enabled === "true" ? true : false,
+    };
+
+    const newStaff = await prisma.staff.create({ data });
+
+    res.status(201).json(newStaff);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to create staff.", error });
+  }
 };
 
-export const updateStaff = async (req, res, next) => {
+// --------------------
+// UPDATE staff
+// --------------------
+export const updateStaff = async (req, res) => {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
     const {
-      staff_id, first_name, last_name, name, gender, dob, email, phone,
-      role_label, status, join_date, exit_date, salary_type, fixed_salary, hourly_rate, commission_rate_percent,
-      login_enabled, username, branch_id, role_id
+      staff_id,
+      first_name,
+      last_name,
+      name,
+      gender,
+      dob,
+      email,
+      phone,
+      role,
+      status,
+      join_date,
+      exit_date,
+      salary_type,
+      fixed_salary,
+      hourly_rate,
+      commission_rate_percent,
+      login_enabled,
+      username,
+      password,
+      branch_id,
+      role_id,
     } = req.body;
-    const profile_photo = req.file ? req.file.path : undefined;
-    const fullName = name || `${first_name} ${last_name}`;
-    const staff = await prisma.staff.update({
-      where: { id: Number(id) },
-      data: {
-        staff_id, first_name, last_name, name: fullName, gender, dob: dob ? new Date(dob) : undefined,
-        email, phone, profile_photo, role_label, status,
-        join_date: join_date ? new Date(join_date) : undefined,
-        exit_date: exit_date ? new Date(exit_date) : undefined,
-        salary_type, fixed_salary: fixed_salary ? parseFloat(fixed_salary) : undefined,
-        hourly_rate: hourly_rate ? parseFloat(hourly_rate) : undefined,
-        commission_rate_percent: commission_rate_percent ? parseFloat(commission_rate_percent) : undefined,
-        login_enabled, username,
-        branch_id: branch_id ? Number(branch_id) : undefined, role_id: role_id ? Number(role_id) : undefined
-      },
-      include: { role: true, branch: true }
+
+    const data = {};
+
+    if (staff_id !== undefined) data.staff_id = staff_id;
+    if (first_name !== undefined) data.first_name = first_name;
+    if (last_name !== undefined) data.last_name = last_name;
+    if (name !== undefined) data.name = name;
+    if (gender !== undefined) data.gender = gender;
+    if (dob) data.dob = new Date(dob);
+    if (email !== undefined) data.email = email;
+    if (phone !== undefined) data.phone = phone;
+    if (role !== undefined) data.role = role;
+    if (status !== undefined) data.status = status;
+    if (join_date) data.join_date = new Date(join_date);
+    if (exit_date) data.exit_date = new Date(exit_date);
+    if (salary_type !== undefined) data.salary_type = salary_type;
+    if (fixed_salary !== undefined) data.fixed_salary = fixed_salary;
+    if (hourly_rate !== undefined) data.hourly_rate = hourly_rate;
+    if (commission_rate_percent !== undefined)
+      data.commission_rate_percent = commission_rate_percent;
+    if (login_enabled !== undefined)
+      data.login_enabled =
+        login_enabled === true || login_enabled === "true" ? true : false;
+    if (username !== undefined) data.username = username;
+    if (password !== undefined) data.password = password;
+    if (branch_id !== undefined) data.branch_id = branch_id;
+    if (role_id !== undefined) data.role_id = role_id;
+
+    // Profile photo from multer
+    if (req.file) data.profile_photo = req.file.path;
+
+    const updatedStaff = await prisma.staff.update({
+      where: { id: parseInt(id) },
+      data,
     });
-    res.json(staff);
-  } catch (err) { next(err); }
+
+    res.status(200).json(updatedStaff);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to update staff.", error });
+  }
 };
 
-export const deleteStaff = async (req, res, next) => {
+// --------------------
+// DELETE staff
+// --------------------
+export const deleteStaff = async (req, res) => {
+  const { id } = req.params;
   try {
-    await prisma.staff.delete({ where: { id: Number(req.params.id) } });
-    res.json({ success: true });
-  } catch (err) { next(err); }
+    await prisma.staff.delete({ where: { id: parseInt(id) } });
+    res.status(200).json({ message: "Staff deleted successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to delete staff.", error });
+  }
 };
-export const changeStaffPassword = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { newPassword } = req.body;
-        const hashed = await bcrypt.hash(newPassword, 15);
-        await prisma.staff.update({
-            where: { id: Number(id) },
-            data: { password: hashed },
-        });
-        res.json({ success: true });
-    } catch (err) {
-        next(err);
-    }
-}
-

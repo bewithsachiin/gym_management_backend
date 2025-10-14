@@ -1,12 +1,19 @@
-import express from 'express';
+import express from "express";
 import {
-  getSalaries, recordSalary, updateSalary, deleteSalary, getSalaryById
-} from '../controllers/salary.controller.js';
+  getAllSalaryRecords,
+  getSalaryRecordById,
+  createSalaryRecord,
+  updateSalaryRecord,
+  deleteSalaryRecord,
+} from "../controllers/salary.controller.js";
 
 const router = express.Router();
-router.get('/', getSalaries);
-router.post('/', recordSalary);
-router.put('/:id', updateSalary);
-router.delete('/:id', deleteSalary);
-router.get('/:id', getSalaryById);
+
+// CRUD routes
+router.get("/", getAllSalaryRecords);          // Get all salary records
+router.get("/:id", getSalaryRecordById);      // Get single record
+router.post("/", createSalaryRecord);         // Create new record
+router.put("/:id", updateSalaryRecord);       // Update record
+router.delete("/:id", deleteSalaryRecord);    // Delete record
+
 export default router;

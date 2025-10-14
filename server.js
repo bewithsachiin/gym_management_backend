@@ -4,7 +4,8 @@ import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 
 // Routes
-import authRoutes from './src/routes/auth.routes.js';
+
+
 import roleRoutes from './src/routes/role.routes.js'
 import branchRoutes from './src/routes/branch.routes.js';
 import groupRoutes from './src/routes/group.routes.js';
@@ -21,6 +22,7 @@ import feedbackRoutes from './src/routes/feedback.routes.js';
 import invoiceRoutes from './src/routes/invoice.routes.js';
 import dashboardRoutes from './src/routes/dashboard.routes.js';
 import reportRoutes from './src/routes/report.routes.js';
+import addPayment  from './src/routes/addpayment.routes.js'
 
 // Middleware
 import { errorHandler } from './src/middleware/error.middleware.js';
@@ -38,7 +40,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Register all routes
-app.use('/api/auth', authRoutes);
+
+
 app.use('/api/roles', roleRoutes);
 app.use('/api/branches', branchRoutes);
 app.use('/api/groups', groupRoutes);
@@ -55,6 +58,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/payments',addPayment);
 
 // Error middleware
 app.use(errorHandler);

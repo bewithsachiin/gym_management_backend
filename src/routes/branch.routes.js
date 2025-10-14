@@ -1,18 +1,29 @@
-import express from 'express';
+// routes/branch.routes.js
+import express from "express";
+import upload from "../middleware/upload.middleware.js"; // multer + Cloudinary middleware
 import {
-  getBranches,
   createBranch,
   updateBranch,
-  deleteBranch,
+  getAllBranches,
   getBranchById,
-} from '../controllers/branch.controller.js';
+  deleteBranch
+} from "../controllers/branch.controller.js";
 
 const router = express.Router();
 
-router.get('/', getBranches);
-router.post('/', createBranch);
-router.put('/:id', updateBranch);
-router.delete('/:id', deleteBranch);
-router.get('/:id', getBranchById);
+// Create branch with optional image upload
+router.post("/", upload.single("branch_image"), createBranch);
+
+// Get all branches
+router.get("/", getAllBranches);
+
+// Get branch by ID
+router.get("/:id", getBranchById);
+
+// Update branch (optional image upload)
+router.put("/:id", upload.single("branch_image"), updateBranch);
+
+// Delete branch
+router.delete("/:id", deleteBranch);
 
 export default router;
