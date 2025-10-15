@@ -64,7 +64,8 @@ export const createBranch = async (req, res) => {
         password,
         branch_image,
         status: status || "Inactive",
-        hours: hours ? JSON.parse(hours) : {}, // simple parse
+     hours: hours ? JSON.stringify(parseHours(hours)) : null
+
       },
     });
 

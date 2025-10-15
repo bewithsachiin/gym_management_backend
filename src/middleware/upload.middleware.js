@@ -5,7 +5,7 @@ import cloudinary from "../config/cloudinary.config.js";
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "gym_groups",
+    folder: "gym_members",
     allowed_formats: ["jpg", "jpeg", "png"],
   },
 });

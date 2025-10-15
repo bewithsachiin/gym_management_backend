@@ -3,7 +3,6 @@ const prisma = new PrismaClient();
 
 // --------------------
 // GET all staff
-// --------------------
 export const getAllStaff = async (req, res) => {
   try {
     const staff = await prisma.staff.findMany({
@@ -12,14 +11,25 @@ export const getAllStaff = async (req, res) => {
         staffRole: true,
         notifications: true,
       },
+      orderBy: { created_at: "desc" }, // Order by newest first
     });
-    res.status(200).json(staff);
+
+    // Ensure Prisma DATETIME values are serialized correctly
+    const sanitizedStaff = staff.map((s) => ({
+      ...s,
+      created_at: s.created_at?.toISOString(),
+      updated_at: s.updated_at?.toISOString(),
+      dob: s.dob?.toISOString(),
+      join_date: s.join_date?.toISOString(),
+      exit_date: s.exit_date?.toISOString(),
+    }));
+
+    res.status(200).json({ success: true, count: sanitizedStaff.length, data: sanitizedStaff });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Failed to fetch staff:", error);
     res.status(500).json({ message: "Failed to fetch staff.", error });
   }
 };
-
 // --------------------
 // GET staff by ID
 // --------------------
@@ -34,14 +44,27 @@ export const getStaffById = async (req, res) => {
         notifications: true,
       },
     });
-    if (!staff) return res.status(404).json({ message: "Staff not found." });
-    res.status(200).json(staff);
+
+    if (!staff) {
+      return res.status(404).json({ success: false, message: "Staff not found." });
+    }
+
+    // Convert DATETIME to ISO string for safe JSON
+    const sanitizedStaff = {
+      ...staff,
+      created_at: staff.created_at?.toISOString(),
+      updated_at: staff.updated_at?.toISOString(),
+      dob: staff.dob?.toISOString(),
+      join_date: staff.join_date?.toISOString(),
+      exit_date: staff.exit_date?.toISOString(),
+    };
+
+    res.status(200).json({ success: true, data: sanitizedStaff });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Failed to fetch staff:", error);
     res.status(500).json({ message: "Failed to fetch staff.", error });
   }
 };
-
 // --------------------
 // CREATE staff
 // --------------------

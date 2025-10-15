@@ -1,178 +1,168 @@
 import { prisma } from '../config/db.config.js';
 
-// ------------------- GET ALL CLASSES -------------------
-export const getClasses = async (req, res, next) => {
+/** 🔹 GET All Classes */
+export const getAllClasses = async (req, res) => {
   try {
     const classes = await prisma.class.findMany({
       include: {
-        trainer: { select: { name: true } },
-        branch: { select: { name: true } }
+        trainer: { select: { first_name: true, last_name: true } },
+        branch: { select: { name: true } },
       },
-      orderBy: { date: 'desc' }
+      orderBy: { date: "desc" },
     });
 
-    const formatted = classes.map(cls => ({
-      id: cls.id,
-      class_name: cls.class_name,
-      trainer_name: cls.trainer?.name || null,
-      branch_name: cls.branch?.name || null,
-      date: cls.date.toISOString().split('T')[0],
-      time: cls.time.toISOString(),
-      schedule_day: cls.schedule_day,
-      total_sheets: cls.total_sheets,
-      status: cls.status
-    }));
-
-    res.json({ success: true, data: formatted });
-  } catch (err) {
-    next(err);
+    res.status(200).json({
+      success: true,
+      count: classes.length,
+      data: classes,
+    });
+  } catch (error) {
+    console.error("❌ Get All Classes Error:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// ------------------- GET CLASS BY ID -------------------
-export const getClassById = async (req, res, next) => {
+/** 🔹 GET Class by ID */
+export const getClassById = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const cls = await prisma.class.findUnique({
-      where: { id },
+    const { id } = req.params;
+    const classData = await prisma.class.findUnique({
+      where: { id: parseInt(id) },
       include: {
-        trainer: { select: { name: true } },
-        branch: { select: { name: true } }
-      }
+        trainer: { select: { first_name: true, last_name: true } },
+        branch: { select: { name: true } },
+      },
     });
 
-    if (!cls) return res.status(404).json({ success: false, message: "Class not found" });
+    if (!classData)
+      return res.status(404).json({ success: false, error: "Class not found" });
 
-    const formatted = {
-      id: cls.id,
-      class_name: cls.class_name,
-      trainer_name: cls.trainer?.name || null,
-      branch_name: cls.branch?.name || null,
-      date: cls.date.toISOString().split('T')[0],
-      time: cls.time.toISOString(),
-      schedule_day: cls.schedule_day,
-      total_sheets: cls.total_sheets,
-      status: cls.status
-    };
-
-    res.json({ success: true, data: formatted });
-  } catch (err) {
-    next(err);
+    res.status(200).json({ success: true, data: classData });
+  } catch (error) {
+    console.error("❌ Get Class Error:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// ------------------- CREATE CLASS -------------------
-export const createClass = async (req, res, next) => {
+/** 🔹 CREATE Class */
+export const createClass = async (req, res) => {
   try {
     const {
       class_name,
-      trainerId,
-      branchId,
+      class_id,
+      trainer_id,
+      branch_id,
       date,
       time,
       schedule_day,
       total_sheets,
-      status
+      status,
     } = req.body;
 
     if (!class_name || !date || !time || !total_sheets) {
-      return res.status(400).json({ success: false, message: "class_name, date, time, total_sheets are required" });
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields: class_name, date, time, total_sheets",
+      });
     }
 
-    const cls = await prisma.class.create({
+    const newClass = await prisma.class.create({
       data: {
+        class_id, // unique class ID
         class_name,
-        trainer_id: trainerId ? Number(trainerId) : null,
-        branch_id: branchId ? Number(branchId) : null,
+        trainer_id: trainer_id ? parseInt(trainer_id) : null,
+        branch_id: branch_id ? parseInt(branch_id) : null,
         date: new Date(date),
         time: new Date(time),
-        schedule_day: schedule_day || null,
-        total_sheets: Number(total_sheets),
-        status: status || 'ACTIVE'
+        schedule_day,
+        total_sheets: parseInt(total_sheets),
+        status: status || "ACTIVE",
       },
       include: {
-        trainer: { select: { name: true } },
-        branch: { select: { name: true } }
-      }
+        trainer: { select: { first_name: true, last_name: true } },
+        branch: { select: { name: true } },
+      },
     });
 
-    const formatted = {
-      id: cls.id,
-      class_name: cls.class_name,
-      trainer_name: cls.trainer?.name || null,
-      branch_name: cls.branch?.name || null,
-      date: cls.date.toISOString().split('T')[0],
-      time: cls.time.toISOString(),
-      schedule_day: cls.schedule_day,
-      total_sheets: cls.total_sheets,
-      status: cls.status
-    };
-
-    res.status(201).json({ success: true, data: formatted });
-  } catch (err) {
-    next(err);
+    res.status(201).json({
+      success: true,
+      message: "Class created ✅",
+      data: newClass,
+    });
+  } catch (error) {
+    console.error("❌ Create Class Error:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// ------------------- UPDATE CLASS -------------------
-export const updateClass = async (req, res, next) => {
+/** 🔹 UPDATE Class */
+export const updateClass = async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const { id } = req.params;
     const {
       class_name,
-      trainerId,
-      branchId,
+      trainer_id,
+      branch_id,
       date,
       time,
       schedule_day,
       total_sheets,
-      status
+      status,
     } = req.body;
 
-    const data = {};
-    if (class_name !== undefined) data.class_name = class_name;
-    if (trainerId !== undefined) data.trainer_id = Number(trainerId);
-    if (branchId !== undefined) data.branch_id = Number(branchId);
-    if (date !== undefined) data.date = new Date(date);
-    if (time !== undefined) data.time = new Date(time);
-    if (schedule_day !== undefined) data.schedule_day = schedule_day;
-    if (total_sheets !== undefined) data.total_sheets = Number(total_sheets);
-    if (status !== undefined) data.status = status;
-
-    const cls = await prisma.class.update({
-      where: { id },
-      data,
-      include: {
-        trainer: { select: { name: true } },
-        branch: { select: { name: true } }
-      }
-    });
-
-    const formatted = {
-      id: cls.id,
-      class_name: cls.class_name,
-      trainer_name: cls.trainer?.name || null,
-      branch_name: cls.branch?.name || null,
-      date: cls.date.toISOString().split('T')[0],
-      time: cls.time.toISOString(),
-      schedule_day: cls.schedule_day,
-      total_sheets: cls.total_sheets,
-      status: cls.status
+    const dataToUpdate = {
+      class_name: class_name || undefined,
+      trainer_id: trainer_id ? parseInt(trainer_id) : undefined,
+      branch_id: branch_id ? parseInt(branch_id) : undefined,
+      date: date ? new Date(date) : undefined,
+      time: time ? new Date(time) : undefined,
+      schedule_day: schedule_day || undefined,
+      total_sheets: total_sheets ? parseInt(total_sheets) : undefined,
+      status: status || undefined,
     };
 
-    res.json({ success: true, data: formatted });
-  } catch (err) {
-    next(err);
+    const updatedClass = await prisma.class.update({
+      where: { id: parseInt(id) },
+      data: dataToUpdate,
+      include: {
+        trainer: { select: { first_name: true, last_name: true } },
+        branch: { select: { name: true } },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Class updated ✅",
+      data: updatedClass,
+    });
+  } catch (error) {
+    console.error("❌ Update Class Error:", error);
+
+    if (error.code === "P2025") {
+      return res.status(404).json({ success: false, error: "Class not found" });
+    }
+
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// ------------------- DELETE CLASS -------------------
-export const deleteClass = async (req, res, next) => {
+/** 🔹 DELETE Class */
+export const deleteClass = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    await prisma.class.delete({ where: { id } });
-    res.json({ success: true, message: "Class deleted successfully" });
-  } catch (err) {
-    next(err);
+    const { id } = req.params;
+    await prisma.class.delete({ where: { id: parseInt(id) } });
+
+    res.status(200).json({
+      success: true,
+      message: "Class deleted 🗑️",
+    });
+  } catch (error) {
+    console.error("❌ Delete Class Error:", error);
+
+    if (error.code === "P2025") {
+      return res.status(404).json({ success: false, error: "Class not found" });
+    }
+
+    res.status(500).json({ success: false, error: error.message });
   }
 };

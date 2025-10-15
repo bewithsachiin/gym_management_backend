@@ -23,7 +23,7 @@ model Branch {
   branch_image String?
   status       String?   @default("Inactive")
   created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
+  updated_at   DateTime  @default(now())
   classes      Class[]
   invoices     Invoice[]
   members      Member[]
@@ -92,7 +92,7 @@ model Staff {
   branch_id               Int?
   role_id                 Int?
   created_at              DateTime                 @default(now())
-  updated_at              DateTime                 @updatedAt
+  updated_at              DateTime                 @default(now())
   classes                 Class[]
   duty_rosters            DutyRoster[]
   housekeepingattendance  housekeepingattendance[]
@@ -200,6 +200,7 @@ model StaffAttendance {
 /// * ========= Classes & Sessions =========
 model Class {
   id           Int         @id @default(autoincrement())
+  class_id     String      @unique
   class_name   String
   status       ClassStatus @default(ACTIVE)
   branch_id    Int?
@@ -220,19 +221,22 @@ model Class {
 }
 
 model Session {
-  id         Int           @id @default(autoincrement())
-  class_id   Int
-  trainer_id Int
-  date       DateTime
-  time       DateTime
-  duration   Int
-  location   String?
-  notes      String?
-  status     SessionStatus @default(SCHEDULED)
-  created_at DateTime      @default(now())
-  updated_at DateTime      @updatedAt
-  class      Class         @relation(fields: [class_id], references: [id])
-  trainer    Staff         @relation("TrainerSessions", fields: [trainer_id], references: [id])
+  id              Int           @id @default(autoincrement())
+  class_id        Int
+  trainer_id      Int
+  date            DateTime
+  time            String?       @db.VarChar(50)
+  duration        Int
+  location        String?
+  notes           String?
+  status          SessionStatus @default(SCHEDULED)
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+  rescheduledDate DateTime?
+  rescheduledTime String?
+  isRescheduled   Boolean       @default(false)
+  class           Class         @relation(fields: [class_id], references: [id])
+  trainer         Staff         @relation("TrainerSessions", fields: [trainer_id], references: [id])
 
   @@index([class_id])
   @@index([trainer_id])
@@ -401,44 +405,49 @@ model DutyRoster {
 }
 
 model ShiftAllocation {
-  id          Int       @id @default(autoincrement())
+  id          Int                        @id @default(autoincrement())
   staff_id    Int
-  shift_type  ShiftType
+  shift_type  shiftallocation_shift_type
   date        DateTime
   start_time  DateTime
   end_time    DateTime
   break_start DateTime?
   break_end   DateTime?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
-  staff       Staff     @relation(fields: [staff_id], references: [id])
+  created_at  DateTime                   @default(now())
+  updated_at  DateTime                   @updatedAt
+  staff       Staff                      @relation(fields: [staff_id], references: [id])
 
   @@index([staff_id])
   @@map("shiftallocation")
 }
 
 model SalaryRecord {
-  id               Int      @id @default(autoincrement())
-  staff_id         Int
-  status           String   @default("GENERATED")
-  commission_total Decimal? @db.Decimal(10, 2)
-  fixed_salary     Decimal? @db.Decimal(10, 2)
-  hourly_rate      Decimal? @db.Decimal(10, 2)
-  hours_worked     Decimal? @db.Decimal(7, 2)
-  net_pay          Decimal? @db.Decimal(10, 2)
-  bonus_label      String?
-  bonus_amount     Decimal? @db.Decimal(10, 2)
-  deduction_label  String?
-  deduction_amount Decimal? @db.Decimal(10, 2)
-  period_start     DateTime
-  period_end       DateTime
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
-  staff            Staff    @relation(fields: [staff_id], references: [id])
+  id                   Int       @id @default(autoincrement())
+  salary_id            String    @unique                     // e.g. "SAL001", "SAL002"
+  staff_id             Int
+  role                 String?
+  compensation_type    StaffSalaryType?                     // FIXED, HOURLY, COMMISSION (optional)
+  hours_worked         Decimal?  @db.Decimal(7, 2)            // e.g., 160
+  hourly_rate          Decimal?  @db.Decimal(10, 2)           // from staff profile
+  hourly_total         Decimal?  @db.Decimal(10, 2)
+  fixed_salary         Decimal?  @db.Decimal(10, 2)
+  commission_total     Decimal?  @db.Decimal(10, 2)
+  bonuses              Json?                                 // [{label:"Performance Bonus", amount:1000}, ...]
+  deductions           Json?                                 // [{label:"Tax", amount:200}, ...]
+  net_pay              Decimal?  @db.Decimal(10, 2)
+  status               salaryRecord_status @default(GENERATED)
+  period_start         DateTime
+  period_end           DateTime
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  // Relation
+  staff Staff @relation(fields: [staff_id], references: [id])
 
   @@index([staff_id])
   @@map("salaryrecord")
 }
+
 
 /// *
 /// * ========= Misc =========
@@ -517,7 +526,12 @@ enum StaffGender {
   FEMALE
   OTHER
 }
-
+enum salaryRecord_status {
+  GENERATED
+  APPROVED
+  PAID
+  CANCELLED
+}
 enum StaffStatus {
   ACTIVE
   INACTIVE
@@ -624,13 +638,6 @@ enum SessionStatus {
   CANCELLED
 }
 
-enum ShiftType {
-  STRAIGHT
-  BREAK
-  ROTATING
-  FLEXIBLE
-}
-
 enum MaintenanceStatus {
   PENDING
   INPROGRESS
@@ -680,4 +687,11 @@ enum booking_status {
   CONFIRMED
   CANCELLED
   COMPLETED
+}
+
+enum shiftallocation_shift_type {
+  STRAIGHT
+  BREAK
+  ROTATING
+  FLEXIBLE
 }

@@ -11,9 +11,9 @@ export const getRoles = async (req, res, next) => {
 
 export const createRole = async (req, res, next) => {
   try {
-    const { name, description, permissionsJson, status } = req.body;
+    const { role_name, role_description, permissionsJson, status } = req.body;
     const newRole = await prisma.role.create({
-      data: { name, description, permissionsJson, status: status || 'ACTIVE' },
+      data: { role_name, role_description, permissionsJson, status: status || 'ACTIVE' },
     });
     res.json(newRole);
   } catch (err) {
@@ -24,10 +24,10 @@ export const createRole = async (req, res, next) => {
 export const updateRole = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description, permissionsJson } = req.body;
+    const { role_name, role_description, permissions_json } = req.body;
     const updated = await prisma.role.update({
       where: { id: Number(id) },
-      data: { name, description, permissionsJson },
+      data: { role_name, role_description, permissions_json },
     });
     res.json(updated);
   } catch (err) {
@@ -54,4 +54,38 @@ export const getRoleById = async (req, res, next) => {
     }catch(err){
         next(err);
     } 
+}
+
+export const getRoleByName = async (req, res, next) => {
+    try{
+        const { role_name } = req.params;
+        const role = await prisma.role.findUnique({ where: { role_name } });
+        if(!role) return res.status(404).json({ message: 'Role not found' });
+        res.json(role);
+    }catch(err){
+        next(err);
+    }
+}
+
+export const changeRoleStatus = async (req, res, next) => {
+    try{
+        const { id } = req.params;
+        const { status } = req.body;
+        const updated = await prisma.role.update({
+            where: { id: Number(id) },
+            data: { status }
+        });
+        res.json(updated);
+    }catch(err){
+        next(err);
+    }
+}
+
+export const getActiveRoles = async (req, res, next) => {
+    try{
+        const roles = await prisma.role.findMany({ where: { status: 'ACTIVE' } });
+        res.json(roles);
+    } catch(err){
+        next(err);
+    }
 }
