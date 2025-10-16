@@ -1,6 +1,6 @@
 // routes/branch.routes.js
 import express from "express";
-import upload from "../middleware/upload.middleware.js"; // multer + Cloudinary middleware
+import { uploadImage } from "../middleware/upload.middleware.js"; // named import
 import {
   createBranch,
   updateBranch,
@@ -12,7 +12,7 @@ import {
 const router = express.Router();
 
 // Create branch with optional image upload
-router.post("/", upload.single("branch_image"), createBranch);
+router.post("/", uploadImage("branches").single("branch_image"), createBranch);
 
 // Get all branches
 router.get("/", getAllBranches);
@@ -21,7 +21,7 @@ router.get("/", getAllBranches);
 router.get("/:id", getBranchById);
 
 // Update branch (optional image upload)
-router.put("/:id", upload.single("branch_image"), updateBranch);
+router.put("/:id", uploadImage("branches").single("branch_image"), updateBranch);
 
 // Delete branch
 router.delete("/:id", deleteBranch);

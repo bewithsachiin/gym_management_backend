@@ -67,6 +67,7 @@ model RolePermission {
 
 /// *
 /// * ========= People =========
+
 model Staff {
   id                      Int                      @id @default(autoincrement())
   staff_id                String                   @unique
