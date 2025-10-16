@@ -65,20 +65,9 @@ model RolePermission {
   @@map("rolepermission")
 }
 
-/// *
-/// * ========= People =========
-
 model Staff {
   id                      Int                      @id @default(autoincrement())
   staff_id                String                   @unique
-  first_name              String                   @default("TempFirst")
-  last_name               String                   @default("TempLast")
-  name                    String?
-  gender                  StaffGender              @default(MALE)
-  dob                     DateTime
-  email                   String                   @unique
-  phone                   String                   @unique
-  profile_photo           String?
   role                    String?
   status                  StaffStatus              @default(ACTIVE)
   join_date               DateTime                 @default(now())
@@ -88,12 +77,9 @@ model Staff {
   hourly_rate             Decimal?                 @db.Decimal(10, 2)
   commission_rate_percent Decimal?                 @db.Decimal(5, 2)
   login_enabled           Boolean                  @default(false)
-  username                String?                  @unique
-  password                String?
-  branch_id               Int?
   role_id                 Int?
-  created_at              DateTime                 @default(now())
-  updated_at              DateTime                 @default(now())
+  user_id                 Int
+  branch_id               Int?
   classes                 Class[]
   duty_rosters            DutyRoster[]
   housekeepingattendance  housekeepingattendance[]
@@ -103,27 +89,20 @@ model Staff {
   shift_allocations       ShiftAllocation[]
   branch                  Branch?                  @relation(fields: [branch_id], references: [id])
   staffRole               Role?                    @relation(fields: [role_id], references: [id])
+  user                    user                     @relation(fields: [user_id], references: [id])
   attendances             StaffAttendance[]
   tasks                   Task[]
 
-  @@index([branch_id])
   @@index([role_id])
+  @@index([branch_id])
+  @@index([user_id], map: "staff_user_id_fkey")
   @@map("staff")
 }
 
 model Member {
   id                Int                    @id @default(autoincrement())
   member_code       String                 @unique
-  first_name        String
   middle_name       String?
-  last_name         String
-  gender            MemberGender
-  date_of_birth     DateTime?
-  email             String?                @unique
-  phone             String                 @unique
-  address           String?
-  city              String?
-  state             String?
   status            MemberStatus           @default(ACTIVE)
   membership_status MemberMembershipStatus @default(ACTIVATED)
   weight            Decimal?               @db.Decimal(5, 2)
@@ -133,24 +112,22 @@ model Member {
   arms              Decimal?               @db.Decimal(5, 2)
   thigh             Decimal?               @db.Decimal(5, 2)
   fat_percent       Decimal?               @db.Decimal(5, 2)
-  username          String?                @unique
-  password          String?
-  member_image      String?
   plan              String?
-  branch_id         Int?
   group_id          Int?
-  created_at        DateTime               @default(now())
-  updated_at        DateTime               @updatedAt
+  user_id           Int
+  branch_id         Int?
   attendances       MemberAttendance[]
   bookings          Booking[]
   invoices          Invoice[]
   branch            Branch?                @relation(fields: [branch_id], references: [id])
   group             Group?                 @relation(fields: [group_id], references: [id])
+  user              user                   @relation(fields: [user_id], references: [id])
   memberships       Membership[]
   payments          Payment[]
 
-  @@index([branch_id])
   @@index([group_id])
+  @@index([branch_id])
+  @@index([user_id], map: "member_user_id_fkey")
   @@map("member")
 }
 
@@ -423,32 +400,29 @@ model ShiftAllocation {
 }
 
 model SalaryRecord {
-  id                   Int       @id @default(autoincrement())
-  salary_id            String    @unique                     // e.g. "SAL001", "SAL002"
-  staff_id             Int
-  role                 String?
-  compensation_type    StaffSalaryType?                     // FIXED, HOURLY, COMMISSION (optional)
-  hours_worked         Decimal?  @db.Decimal(7, 2)            // e.g., 160
-  hourly_rate          Decimal?  @db.Decimal(10, 2)           // from staff profile
-  hourly_total         Decimal?  @db.Decimal(10, 2)
-  fixed_salary         Decimal?  @db.Decimal(10, 2)
-  commission_total     Decimal?  @db.Decimal(10, 2)
-  bonuses              Json?                                 // [{label:"Performance Bonus", amount:1000}, ...]
-  deductions           Json?                                 // [{label:"Tax", amount:200}, ...]
-  net_pay              Decimal?  @db.Decimal(10, 2)
-  status               salaryRecord_status @default(GENERATED)
-  period_start         DateTime
-  period_end           DateTime
-  created_at           DateTime  @default(now())
-  updated_at           DateTime  @updatedAt
-
-  // Relation
-  staff Staff @relation(fields: [staff_id], references: [id])
+  id                Int                 @id @default(autoincrement())
+  salary_id         String              @unique
+  staff_id          Int
+  role              String?
+  compensation_type StaffSalaryType?
+  hours_worked      Decimal?            @db.Decimal(7, 2)
+  hourly_rate       Decimal?            @db.Decimal(10, 2)
+  hourly_total      Decimal?            @db.Decimal(10, 2)
+  fixed_salary      Decimal?            @db.Decimal(10, 2)
+  commission_total  Decimal?            @db.Decimal(10, 2)
+  bonuses           String?             @db.LongText
+  deductions        String?             @db.LongText
+  net_pay           Decimal?            @db.Decimal(10, 2)
+  status            salaryRecord_status @default(GENERATED)
+  period_start      DateTime
+  period_end        DateTime
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+  staff             Staff               @relation(fields: [staff_id], references: [id])
 
   @@index([staff_id])
   @@map("salaryrecord")
 }
-
 
 /// *
 /// * ========= Misc =========
@@ -515,6 +489,27 @@ model walkinregistration {
   @@index([membership_plan_id], map: "walkInRegistration_membership_plan_id_fkey")
 }
 
+model user {
+  id            Int       @id @default(autoincrement())
+  first_name    String
+  last_name     String
+  name          String?
+  gender        String?
+  dob           DateTime?
+  status        String? 
+  email         String?   @unique(map: "User_email_key")
+  phone         String?   @unique(map: "User_phone_key")
+  username      String?   @unique(map: "User_username_key")
+  password      String?
+  profile_photo String?
+  created_at    DateTime  @default(now())
+ updated_at     DateTime @default(now()) 
+
+  role          String    @default("Staff") @db.VarChar(255)
+  member        Member[]
+  staff         Staff[]
+}
+
 /// *
 /// * ========= Enums =========
 enum RoleStatus {
@@ -522,17 +517,13 @@ enum RoleStatus {
   INACTIVE
 }
 
-enum StaffGender {
-  MALE
-  FEMALE
-  OTHER
-}
 enum salaryRecord_status {
   GENERATED
   APPROVED
   PAID
-  CANCELLED
+  CANCELLED
 }
+
 enum StaffStatus {
   ACTIVE
   INACTIVE
@@ -568,12 +559,6 @@ enum AttendanceStatus {
   ONLEAVE
   HOLIDAY
   HALF_DAY
-}
-
-enum MemberGender {
-  MALE
-  FEMALE
-  OTHER
 }
 
 enum MemberStatus {
