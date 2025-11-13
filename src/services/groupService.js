@@ -1,13 +1,21 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const getAllGroups = async (branchId) => {
+const getAllGroups = async (branchId = null) => {
   try {
+    const where = branchId ? { branchId: parseInt(branchId) } : {};
+
     const groups = await prisma.group.findMany({
-      where: { branchId },
+      where,
       include: {
         _count: {
           select: { members: true }
+        },
+        branch: {
+          select: {
+            id: true,
+            name: true
+          }
         }
       }
     });
@@ -17,7 +25,8 @@ const getAllGroups = async (branchId) => {
       name: group.name,
       photo: group.photo,
       total: group._count.members,
-      branchId: group.branchId
+      branchId: group.branchId,
+      branch: group.branch
     }));
   } catch (error) {
     throw new Error(`Error fetching groups: ${error.message}`);

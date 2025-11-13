@@ -464,6 +464,33 @@ const rejectBooking = async (bookingId, userId) => {
   return updatedBooking;
 };
 
+// Get distinct plan features (types)
+const getFeatures = async () => {
+  // Return a static list of common gym features
+  return [
+    "Sauna",
+    "Group Classes",
+    "Personal Training",
+    "Locker Room",
+    "Cardio Access",
+    "Swimming Pool",
+    "Nutrition Counseling",
+    "Massage Therapy",
+    "Yoga Classes",
+    "Weight Training",
+    "CrossFit",
+    "Boxing",
+    "Martial Arts",
+    "Dance Classes",
+    "Pilates",
+    "Zumba",
+    "Spin Classes",
+    "Tennis Court",
+    "Basketball Court",
+    "Squash Court"
+  ];
+};
+
 module.exports = {
   getAllPlans,
   getPlanById,
@@ -471,6 +498,7 @@ module.exports = {
   updatePlan,
   deletePlan,
   togglePlanStatus,
+  getFeatures,
   getBookingRequests,
   createBookingRequest,
   approveBooking,

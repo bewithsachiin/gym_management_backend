@@ -3,17 +3,17 @@ const responseHandler = require('../utils/responseHandler');
 
 const getClasses = async (req, res, next) => {
   try {
-    const { branchId } = req.user;
-    const filters = { ...req.query };
+    const { userRole, userBranchId, isSuperAdmin } = req.accessFilters;
+    const filters = { ...req.query, ...req.queryFilters };
 
-    // Enforce branch isolation unless SUPERADMIN
-    if (req.user.role !== 'SUPERADMIN') {
-      filters.branchId = branchId;
-    }
+    console.log(`📅 Class Controller - Get classes - Role: ${userRole}, Branch: ${userBranchId}, Filters:`, filters);
 
     const classes = await classScheduleService.getAllClasses(filters);
+    console.log(`📅 Classes fetched - Count: ${classes.length}`);
+
     responseHandler.success(res, 'Classes fetched successfully', { classes });
   } catch (error) {
+    console.error('❌ Class Controller Error:', error);
     next(error);
   }
 };
@@ -45,6 +45,12 @@ const createClass = async (req, res, next) => {
     // Set branchId and adminId from authenticated user
     classData.branchId = branchId;
     classData.adminId = userId;
+
+    // For admin, ensure class is created in their branch
+    const { userRole, userBranchId } = req.accessFilters;
+    if (userRole === 'admin' && !classData.branchId) {
+      classData.branchId = userBranchId;
+    }
 
     const newClass = await classScheduleService.createClass(classData, userId);
     responseHandler.success(res, 'Class created successfully', { class: newClass }, 201);

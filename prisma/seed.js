@@ -26,8 +26,8 @@ async function main() {
     },
   });
 
-  // Create a branch
-  const branch = await prisma.branch.upsert({
+  // Create branches
+  const branch1 = await prisma.branch.upsert({
     where: { id: 1 },
     update: {},
     create: {
@@ -39,7 +39,46 @@ async function main() {
     },
   });
 
-  // Create admin
+  const branch2 = await prisma.branch.upsert({
+    where: { id: 2 },
+    update: {},
+    create: {
+      name: 'Downtown Branch',
+      code: 'DOWN002',
+      address: '456 Downtown Ave',
+      hours: { open: '05:30', close: '21:00' },
+      adminId: superadmin.id,
+    },
+  });
+
+  const branch3 = await prisma.branch.upsert({
+    where: { id: 3 },
+    update: {},
+    create: {
+      name: 'Uptown Branch',
+      code: 'UP003',
+      address: '789 Uptown Blvd',
+      hours: { open: '06:30', close: '22:30' },
+      adminId: superadmin.id,
+    },
+  });
+
+  const branch4 = await prisma.branch.upsert({
+    where: { id: 4 },
+    update: {},
+    create: {
+      name: 'Suburban Branch',
+      code: 'SUB004',
+      address: '101 Suburban Rd',
+      hours: { open: '07:00', close: '23:00' },
+      adminId: superadmin.id,
+    },
+  });
+
+  // Use branch1 for existing users and data
+  const branch = branch1;
+
+  // Create admin for Main Branch
   const admin = await prisma.user.upsert({
     where: { email: 'admin@fit.com' },
     update: {},
@@ -49,7 +88,49 @@ async function main() {
       email: 'admin@fit.com',
       password: adminPassword,
       role: 'admin',
-      branchId: branch.id,
+      branchId: branch1.id,
+    },
+  });
+
+  // Create admin for Downtown Branch
+  const admin2 = await prisma.user.upsert({
+    where: { email: 'admin2@fit.com' },
+    update: {},
+    create: {
+      firstName: 'Downtown',
+      lastName: 'Admin',
+      email: 'admin2@fit.com',
+      password: adminPassword,
+      role: 'admin',
+      branchId: branch2.id,
+    },
+  });
+
+  // Create admin for Uptown Branch
+  const admin3 = await prisma.user.upsert({
+    where: { email: 'admin3@fit.com' },
+    update: {},
+    create: {
+      firstName: 'Uptown',
+      lastName: 'Admin',
+      email: 'admin3@fit.com',
+      password: adminPassword,
+      role: 'admin',
+      branchId: branch3.id,
+    },
+  });
+
+  // Create admin for Suburban Branch
+  const admin4 = await prisma.user.upsert({
+    where: { email: 'admin4@fit.com' },
+    update: {},
+    create: {
+      firstName: 'Suburban',
+      lastName: 'Admin',
+      email: 'admin4@fit.com',
+      password: adminPassword,
+      role: 'admin',
+      branchId: branch4.id,
     },
   });
 
@@ -121,6 +202,50 @@ async function main() {
       role: 'receptionist',
       branchId: branch.id,
     },
+  });
+
+  // Create additional member for demo groups
+  const member2 = await prisma.user.upsert({
+    where: { email: 'member2@fit.com' },
+    update: {},
+    create: {
+      firstName: 'Another',
+      lastName: 'Member',
+      email: 'member2@fit.com',
+      password: memberPassword,
+      role: 'member',
+      branchId: branch.id,
+    },
+  });
+
+  // Create sample groups
+  const beginnersGroup = await prisma.group.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      name: 'Beginners Group',
+      branchId: branch.id,
+    },
+  });
+
+  const advancedGroup = await prisma.group.upsert({
+    where: { id: 2 },
+    update: {},
+    create: {
+      name: 'Advanced Group',
+      branchId: branch.id,
+    },
+  });
+
+  // Assign members to groups
+  await prisma.user.update({
+    where: { id: member.id },
+    data: { groupId: beginnersGroup.id },
+  });
+
+  await prisma.user.update({
+    where: { id: member2.id },
+    data: { groupId: advancedGroup.id },
   });
 
   // Create staff roles first
@@ -425,6 +550,261 @@ async function main() {
       startDate: new Date(),
       expiryDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
       remainingSessions: 11, // 12 - 1 used
+    },
+  });
+
+  // Create branch-specific plans for Main Branch
+  const mainBranchStarterGroupPlan = await prisma.branchPlan.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      name: 'Main Branch Starter Pack',
+      type: 'group',
+      sessions: 8,
+      validity: 30,
+      priceCents: 249900, // ₹2,499
+      currency: 'INR',
+      active: true,
+      branchId: branch1.id,
+      createdById: admin.id,
+    },
+  });
+
+  const mainBranchProGroupPlan = await prisma.branchPlan.upsert({
+    where: { id: 2 },
+    update: {},
+    create: {
+      name: 'Main Branch Pro Pack',
+      type: 'group',
+      sessions: 16,
+      validity: 60,
+      priceCents: 449900, // ₹4,499
+      currency: 'INR',
+      active: true,
+      branchId: branch1.id,
+      createdById: admin.id,
+    },
+  });
+
+  const mainBranchBasicPersonalPlan = await prisma.branchPlan.upsert({
+    where: { id: 3 },
+    update: {},
+    create: {
+      name: 'Main Branch Basic 1:1',
+      type: 'personal',
+      sessions: 6,
+      validity: 30,
+      priceCents: 499900, // ₹4,999
+      currency: 'INR',
+      active: true,
+      branchId: branch1.id,
+      createdById: admin.id,
+    },
+  });
+
+  const mainBranchElitePersonalPlan = await prisma.branchPlan.upsert({
+    where: { id: 4 },
+    update: {},
+    create: {
+      name: 'Main Branch Elite 1:1',
+      type: 'personal',
+      sessions: 20,
+      validity: 90,
+      priceCents: 1499900, // ₹14,999
+      currency: 'INR',
+      active: true,
+      branchId: branch1.id,
+      createdById: admin.id,
+    },
+  });
+
+  // Create branch plans for Downtown Branch
+  const downtownGroupPlan = await prisma.branchPlan.upsert({
+    where: { id: 5 },
+    update: {},
+    create: {
+      name: 'Downtown Group Fitness',
+      type: 'group',
+      sessions: 12,
+      validity: 45,
+      priceCents: 349900, // ₹3,499
+      currency: 'INR',
+      active: true,
+      branchId: branch2.id,
+      createdById: admin2.id,
+    },
+  });
+
+  const downtownPersonalPlan = await prisma.branchPlan.upsert({
+    where: { id: 6 },
+    update: {},
+    create: {
+      name: 'Downtown Personal Training',
+      type: 'personal',
+      sessions: 10,
+      validity: 45,
+      priceCents: 699900, // ₹6,999
+      currency: 'INR',
+      active: true,
+      branchId: branch2.id,
+      createdById: admin2.id,
+    },
+  });
+
+  // Create branch plans for Uptown Branch
+  const uptownGroupPlan = await prisma.branchPlan.upsert({
+    where: { id: 7 },
+    update: {},
+    create: {
+      name: 'Uptown Wellness Group',
+      type: 'group',
+      sessions: 20,
+      validity: 75,
+      priceCents: 599900, // ₹5,999
+      currency: 'INR',
+      active: true,
+      branchId: branch3.id,
+      createdById: admin3.id,
+    },
+  });
+
+  const uptownPersonalPlan = await prisma.branchPlan.upsert({
+    where: { id: 8 },
+    update: {},
+    create: {
+      name: 'Uptown Premium Personal',
+      type: 'personal',
+      sessions: 15,
+      validity: 75,
+      priceCents: 1199900, // ₹11,999
+      currency: 'INR',
+      active: true,
+      branchId: branch3.id,
+      createdById: admin3.id,
+    },
+  });
+
+  // Create branch plans for Suburban Branch
+  const suburbanGroupPlan = await prisma.branchPlan.upsert({
+    where: { id: 9 },
+    update: {},
+    create: {
+      name: 'Suburban Family Fitness',
+      type: 'group',
+      sessions: 25,
+      validity: 90,
+      priceCents: 749900, // ₹7,499
+      currency: 'INR',
+      active: true,
+      branchId: branch4.id,
+      createdById: admin4.id,
+    },
+  });
+
+  const suburbanPersonalPlan = await prisma.branchPlan.upsert({
+    where: { id: 10 },
+    update: {},
+    create: {
+      name: 'Suburban Personal Coaching',
+      type: 'personal',
+      sessions: 18,
+      validity: 90,
+      priceCents: 1349900, // ₹13,499
+      currency: 'INR',
+      active: true,
+      branchId: branch4.id,
+      createdById: admin4.id,
+    },
+  });
+
+  // Create sample branch plan booking requests
+  const branchBooking1 = await prisma.branchPlanBooking.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      memberId: member.id,
+      branchPlanId: mainBranchProGroupPlan.id,
+      requestedAt: new Date('2025-01-20T10:30:00Z'),
+      status: 'pending',
+      sessionsUsed: 0,
+      note: 'Interested in main branch group training',
+    },
+  });
+
+  const branchBooking2 = await prisma.branchPlanBooking.upsert({
+    where: { id: 2 },
+    update: {},
+    create: {
+      memberId: member.id,
+      branchPlanId: mainBranchElitePersonalPlan.id,
+      requestedAt: new Date('2025-01-20T11:15:00Z'),
+      status: 'approved',
+      sessionsUsed: 2,
+      note: 'Premium personal training request',
+    },
+  });
+
+  const branchBooking3 = await prisma.branchPlanBooking.upsert({
+    where: { id: 3 },
+    update: {},
+    create: {
+      memberId: member.id,
+      branchPlanId: mainBranchStarterGroupPlan.id,
+      requestedAt: new Date('2025-01-19T15:45:00Z'),
+      status: 'rejected',
+      sessionsUsed: 0,
+      note: 'Basic starter plan request',
+    },
+  });
+
+  const branchBooking4 = await prisma.branchPlanBooking.upsert({
+    where: { id: 4 },
+    update: {},
+    create: {
+      memberId: member2.id,
+      branchPlanId: downtownGroupPlan.id,
+      requestedAt: new Date('2025-01-21T09:00:00Z'),
+      status: 'pending',
+      sessionsUsed: 0,
+      note: 'Downtown branch group fitness',
+    },
+  });
+
+  const branchBooking5 = await prisma.branchPlanBooking.upsert({
+    where: { id: 5 },
+    update: {},
+    create: {
+      memberId: member2.id,
+      branchPlanId: uptownPersonalPlan.id,
+      requestedAt: new Date('2025-01-22T14:20:00Z'),
+      status: 'approved',
+      sessionsUsed: 1,
+      note: 'Premium uptown personal training',
+    },
+  });
+
+  // Create active member branch plans for approved bookings
+  const memberBranchPlan1 = await prisma.memberBranchPlan.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      memberId: member.id,
+      branchPlanId: mainBranchElitePersonalPlan.id,
+      startDate: new Date(),
+      expiryDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
+      remainingSessions: 18, // 20 - 2 used
+    },
+  });
+
+  const memberBranchPlan2 = await prisma.memberBranchPlan.upsert({
+    where: { id: 2 },
+    update: {},
+    create: {
+      memberId: member2.id,
+      branchPlanId: uptownPersonalPlan.id,
+      startDate: new Date(),
+      expiryDate: new Date(Date.now() + 75 * 24 * 60 * 60 * 1000), // 75 days from now
+      remainingSessions: 14, // 15 - 1 used
     },
   });
 

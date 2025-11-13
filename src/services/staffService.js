@@ -41,6 +41,14 @@ const getAllStaff = async () => {
       commission_rate_percent: true,
       login_enabled: true,
       username: true,
+      createdBy: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
       createdAt: true,
       updatedAt: true,
     },
@@ -68,6 +76,7 @@ const getAllStaff = async () => {
     commission_rate_percent: staff.commission_rate_percent,
     login_enabled: staff.login_enabled,
     username: staff.username,
+    createdBy: staff.createdBy,
     createdAt: staff.createdAt,
     updatedAt: staff.updatedAt,
   }));
@@ -179,6 +188,14 @@ const createStaff = async (data, createdById) => {
       commission_rate_percent: true,
       login_enabled: true,
       username: true,
+      createdBy: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
       createdAt: true,
       updatedAt: true,
     },

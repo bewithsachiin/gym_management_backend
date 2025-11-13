@@ -43,7 +43,7 @@ const memberRoutes = require('./routes/memberRoutes');
 const planRoutes = require('./routes/planRoutes');
 const classScheduleRoutes = require('./routes/classScheduleRoutes');
 const groupRoutes = require('./routes/groupRoutes');
-
+const branchPlanRoutes = require('./routes/branchPlanRoutes');
 
 
 
@@ -56,6 +56,7 @@ app.use('/api/v1/members', memberRoutes);
 app.use('/api/v1/plans', planRoutes);
 app.use('/api/v1/classes', classScheduleRoutes);
 app.use('/api/v1/groups', groupRoutes);
+app.use('/api/v1/branch-plans', branchPlanRoutes);
 
 // ✅ Health check route
 app.get('/api/health', (req, res) => {
@@ -63,7 +64,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // ✅ Centralized error handling
-const errorHandler = require('./middleware/errorHandler');
+const errorHandler = require('./middlewares/errorHandler');
 app.use(errorHandler);
 
 module.exports = app;

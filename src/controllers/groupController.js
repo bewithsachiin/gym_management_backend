@@ -3,10 +3,25 @@ const responseHandler = require('../utils/responseHandler');
 
 const getGroups = async (req, res, next) => {
   try {
-    const branchId = req.user.branchId; // Assuming user has branchId from auth
-    const groups = await groupService.getAllGroups(branchId);
+    const { userRole, userBranchId, isSuperAdmin } = req.accessFilters;
+    const filters = req.queryFilters;
+
+    console.log(`👥 Group Controller - Get groups - Role: ${userRole}, Branch: ${userBranchId}, Filters:`, filters);
+
+    let groups;
+    if (isSuperAdmin) {
+      // SuperAdmin can see all groups from all branches
+      groups = await groupService.getAllGroups();
+      console.log(`👥 SuperAdmin fetched all groups - Count: ${groups.length}`);
+    } else {
+      // Other roles see groups from their branch
+      groups = await groupService.getAllGroups(userBranchId);
+      console.log(`👥 User fetched branch groups - Count: ${groups.length}`);
+    }
+
     responseHandler.success(res, 'Groups fetched successfully', { groups });
   } catch (error) {
+    console.error('❌ Group Controller Error:', error);
     next(error);
   }
 };
@@ -28,7 +43,11 @@ const createGroup = async (req, res, next) => {
     if (req.file) {
       groupData.photo = req.file.path; // Cloudinary URL from middleware
     }
-    const branchId = req.user.branchId;
+
+    // Ensure group is created in the admin's branch
+    const { userRole, userBranchId } = req.accessFilters;
+    const branchId = userRole === 'admin' ? userBranchId : req.user.branchId;
+
     const group = await groupService.createGroup(groupData, branchId);
     responseHandler.success(res, 'Group created successfully', { group });
   } catch (error) {

@@ -17,11 +17,19 @@ const getAllBranches = async () => {
       branch_image: true,
       createdAt: true,
       updatedAt: true,
+      createdBy: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
     },
   });
 };
 
-const createBranch = async (data) => {
+const createBranch = async (data, createdById) => {
   const { name, code, address, phone, email, status, hours, branch_image, adminId } = data;
 
   // Validate adminId is provided
@@ -29,7 +37,7 @@ const createBranch = async (data) => {
     throw new Error('adminId is required to create a branch');
   }
 
-  // Check if admin exists and is role 'admin'
+  // Check if admin exists and is role 'admin' or 'superadmin'
   const admin = await prisma.user.findUnique({
     where: { id: parseInt(adminId) },
   });
@@ -38,12 +46,12 @@ const createBranch = async (data) => {
     throw new Error('Admin user not found');
   }
 
-  if (admin.role !== 'admin') {
-    throw new Error('Assigned user must be an admin');
+  if (!['admin', 'superadmin'].includes(admin.role)) {
+    throw new Error('Assigned user must be an admin or superadmin');
   }
 
-  // Check if admin already has a branch
-  if (admin.branchId) {
+  // Check if admin already has a branch (only for regular admins, superadmin can have multiple)
+  if (admin.role === 'admin' && admin.branchId) {
     throw new Error('Admin is already assigned to a branch');
   }
 
@@ -63,6 +71,7 @@ const createBranch = async (data) => {
         hours,
         branch_image,
         adminId: parseInt(adminId),
+        createdById: createdById ? parseInt(createdById) : null,
       },
       select: {
         id: true,
@@ -76,14 +85,24 @@ const createBranch = async (data) => {
         branch_image: true,
         createdAt: true,
         updatedAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
       },
     });
 
-    // Update admin's branchId
-    await prisma.user.update({
-      where: { id: parseInt(adminId) },
-      data: { branchId: branch.id },
-    });
+    // Update admin's branchId (only for regular admins, superadmin doesn't need branchId update)
+    if (admin.role === 'admin') {
+      await prisma.user.update({
+        where: { id: parseInt(adminId) },
+        data: { branchId: branch.id },
+      });
+    }
 
     return branch;
   });

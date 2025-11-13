@@ -16,6 +16,7 @@ const upload = multer({ storage });
 const uploadBranchImage = upload.single('branch_image');
 const uploadProfilePhoto = upload.single('profile_photo');
 const uploadMemberPhoto = upload.single('profile_photo');
+const uploadGroupPhoto = upload.single('photo');
 
 const cloudinaryUpload = async (req, res, next) => {
   if (!req.file) return next();
@@ -27,6 +28,8 @@ const cloudinaryUpload = async (req, res, next) => {
       folder = 'gym-branches';
     } else if (req.file.fieldname === 'profile_photo' && req.originalUrl.includes('/members')) {
       folder = 'gym-members';
+    } else if (req.file.fieldname === 'photo' && req.originalUrl.includes('/groups')) {
+      folder = 'gym-groups';
     }
     const result = await cloudinary.uploader.upload(localPath, {
       folder: folder,
@@ -63,6 +66,14 @@ const memberUploadMiddleware = (req, res, next) => {
   });
 };
 
+const groupUploadMiddleware = (req, res, next) => {
+  uploadGroupPhoto(req, res, (err) => {
+    if (err) return next(err);
+    cloudinaryUpload(req, res, next);
+  });
+};
+
 module.exports = branchUploadMiddleware;
 module.exports.staffUpload = staffUploadMiddleware;
 module.exports.memberUpload = memberUploadMiddleware;
+module.exports.groupUpload = groupUploadMiddleware;

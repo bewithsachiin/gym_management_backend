@@ -4,17 +4,28 @@ const responseHandler = require('../utils/responseHandler');
 // Get all plans
 const getPlans = async (req, res, next) => {
   try {
-    const { branchId, role } = req.user;
-    const filters = { ...req.query };
+    const { userRole, userBranchId, isSuperAdmin } = req.accessFilters;
+    const filters = { ...req.query, ...req.queryFilters };
 
-    // Enforce branch isolation unless superadmin
-    if (role !== 'superadmin') {
-      filters.branchId = branchId;
-    }
+    console.log(`📋 Plan Controller - Get plans - Role: ${userRole}, Branch: ${userBranchId}, Filters:`, filters);
 
     const plans = await planService.getAllPlans(filters);
+    console.log(`📋 Plans fetched - Count: ${plans.length}`);
+
     responseHandler.success(res, 'Plans fetched successfully', { plans });
   } catch (error) {
+    console.error('❌ Plan Controller Error:', error);
+    next(error);
+  }
+};
+
+// Get features
+const getFeatures = async (req, res, next) => {
+  try {
+    const features = await planService.getFeatures();
+    responseHandler.success(res, 'Features fetched successfully', { features });
+  } catch (error) {
+    console.error('❌ Plan Controller Error:', error);
     next(error);
   }
 };
@@ -48,6 +59,12 @@ const createPlan = async (req, res, next) => {
     // Set branchId for non-superadmin users
     if (role !== 'superadmin') {
       planData.branchId = branchId;
+    }
+
+    // For admin, ensure plan is created in their branch
+    const { userRole, userBranchId } = req.accessFilters;
+    if (userRole === 'admin' && !planData.branchId) {
+      planData.branchId = userBranchId;
     }
 
     const plan = await planService.createPlan(planData, userId);
@@ -175,6 +192,7 @@ const rejectBooking = async (req, res, next) => {
 
 module.exports = {
   getPlans,
+  getFeatures,
   getPlan,
   createPlan,
   updatePlan,
