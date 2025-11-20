@@ -1,0 +1,90 @@
+const groupService = require('../services/groupService');
+const responseHandler = require('../utils/responseHandler');
+
+const getGroups = async (req, res, next) => {
+  try {
+    const { userRole, userBranchId, isSuperAdmin } = req.accessFilters;
+    const filters = req.queryFilters;
+
+    console.log(`👥 Group Controller - Get groups - Role: ${userRole}, Branch: ${userBranchId}, Filters:`, filters);
+
+    let groups;
+    if (isSuperAdmin) {
+      // SuperAdmin can see all groups from all branches
+      groups = await groupService.getAllGroups();
+      console.log(`👥 SuperAdmin fetched all groups - Count: ${groups.length}`);
+    } else {
+      // Other roles see groups from their branch
+      groups = await groupService.getAllGroups(userBranchId);
+      console.log(`👥 User fetched branch groups - Count: ${groups.length}`);
+    }
+
+    responseHandler.success(res, 'Groups fetched successfully', { groups });
+  } catch (error) {
+    console.error('❌ Group Controller Error:', error);
+    next(error);
+  }
+};
+
+const getGroup = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const branchId = req.user.branchId;
+    const group = await groupService.getGroupById(id, branchId);
+    responseHandler.success(res, 'Group fetched successfully', { group });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createGroup = async (req, res, next) => {
+  try {
+    const groupData = req.body;
+    if (req.file) {
+      groupData.photo = req.file.path; // Cloudinary URL from middleware
+    }
+
+    // Ensure group is created in the admin's branch
+    const { userRole, userBranchId } = req.accessFilters;
+    const branchId = userRole === 'admin' ? userBranchId : req.user.branchId;
+
+    const group = await groupService.createGroup(groupData, branchId);
+    responseHandler.success(res, 'Group created successfully', { group });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateGroup = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const groupData = req.body;
+    if (req.file) {
+      groupData.photo = req.file.path; // Cloudinary URL from middleware
+    }
+    const branchId = req.user.branchId;
+    const group = await groupService.updateGroup(id, groupData, branchId);
+    responseHandler.success(res, 'Group updated successfully', { group });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteGroup = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const branchId = req.user.branchId;
+    await groupService.deleteGroup(id, branchId);
+    responseHandler.success(res, 'Group deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  getGroups,
+  getGroup,
+  createGroup,
+  updateGroup,
+  deleteGroup,
+};
